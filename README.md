@@ -5,6 +5,10 @@
 
 ## Modules
 
+**convert.lua**
+
+Download ```nameservers.csv``` from https://public-dns.info/, then run this script to have the csv file converted to a Lua table, using the format used by the main application.
+
 
 ## Author
 
