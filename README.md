@@ -1,6 +1,6 @@
 #  **pDNS**
 
-## Project description - rel. 0.0.2 (2021/07/12)
+## Project description - rel. 0.0.3 (2021/07/19)
 
 A list of DNS servers is presented to the user. For each server an enable/disable flag controls if processing is due.
 Upon running the main backtask, each (enabled) server will be questioned about a URL. Response is in the log file.
@@ -19,7 +19,7 @@ Run this script to have the csv file converted to a Lua table, which can be the 
 
 # .2 **main.lua**
 
-
+![Main dialog inactive](/docs/Main_Dialog.png)
 
 
 ## Author
