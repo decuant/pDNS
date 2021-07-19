@@ -19,7 +19,7 @@ Run this script to have the csv file converted to a Lua table, which can be the 
 
 # .2 **main.lua**
 
-![Main dialog inactive](/docs/Main_Dialog.png)
+![Main dialog inactive](/docs/Main_Dialog1.png)
 
 
 ## Author
