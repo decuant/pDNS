@@ -26,12 +26,111 @@ local m_App =
 }
 
 -- ----------------------------------------------------------------------------
+-- these are filters examples divided by continent
+-- since name servers country codes are 2 digit long I used the list below
+--
+-- https://en.wikipedia.org/wiki/Country_code_top-level_domain
+--
+local m_tF_Europe =
+{
+	"(IT)",				-- Italy
+	"(DE)",				-- Germany
+	"(NL)",				-- Netherlands
+	"(FR)",				-- France
+	"(ES)",				-- Spain
+	"(RS)",				-- Serbia
+	"(UK)",				-- United Kingdom
+}
+
+local m_tF_NorthAmerica =
+{
+	"(CA)",				-- Canada
+	"(US)",				-- United States
+}
+
+local m_tF_SouthAmerica =
+{
+	"(AR)",				-- Argentina
+	"(BO)",				-- Bolivia
+	"(BR)",				-- Brazile
+	"(CO)",				-- Colombia
+}
+
+local m_tF_Asia =
+{
+	"(AE)",				-- United Arab Emirates
+	"(BT)", 			-- Buthan
+	"(CN)",				-- China
+	"(RU)", 			-- Russia
+	"(HK)",				-- Hong Kong
+	"(TR)",				-- Turkey
+	"(TW)",				-- Taiwan
+}
+
+local m_tF_Africa =
+{
+	"(AO)",				-- Angola
+	"(RW)",				-- RWanda
+	"(TZ)",				-- Tanzania
+	"(ZA)",				-- South Africa
+	"(ZM)",				-- Zambia
+	"(ZW)",				-- Zimbabwe
+}
+
+local m_tF_Oceania =
+{
+	"(AU)",				-- Australia
+	"(NZ)",				-- New Zealand
+	"(PG)",				-- Papua New Guinea
+	"(WS)",				-- Samoa
+}
+
+local m_tF_Antarctica =
+{
+	"(AQ)",				-- Antarctica	(1 entry in big list)
+}
+
+-- ----------------------------------------------------------------------------
+--
+-- nameservers.csv			filtered list of responding servers
+--
+-- nameservers-all.csv		complete list of registered servers
 --
 local m_Config =
 {
 	sFileInput		= "data/nameservers.csv",
 	sFileOutput		= "data/nameservers.lua",
+	
+	tFilters		= m_tF_Europe
 }
+
+-- ----------------------------------------------------------------------------
+-- select rows that contain the specified text
+--
+local function ApplyFilters(inTable)
+	
+	--if not inTable or 0 == #inTable then return nil end
+	if not inTable then return nil end
+	
+	local tResults = { }
+	local tFilters = m_Config.tFilters
+	
+	for _, server in next, inTable do
+		
+		for i=1, #tFilters do
+			
+			-- add the row if filter found
+			--
+			if server[3]:find(tFilters[i], 1, true) then
+				
+				tResults[#tResults + 1] = server
+				break
+			end
+		end
+	end
+	
+	return tResults
+end
 
 -- ----------------------------------------------------------------------------
 -- convert a row to a text line
@@ -43,8 +142,6 @@ local function ToString(inTable)
 	for i=1, 3 do
 		
 		sOutput[#sOutput + 1] = _frmt("\"%s\"", inTable[i])
---	sOutput[#sOutput + 1] = _frmt("\"%s\"", inTable[2])
---	sOutput[#sOutput + 1] = _frmt("\"%s\"", inTable[3])
 	end
 
 	return _cat(sOutput, ", ")
@@ -57,6 +154,13 @@ local function SaveServers()
 	m_logger:line("SaveServers")
 
 	local tServers = m_App.tServers
+	
+	if not tServers or 0 == #tServers then
+		
+		m_logger:line("Servers' list is empty!")
+		
+		return false
+	end	
 	
 	-- get the file's content
 	--
@@ -72,9 +176,7 @@ local function SaveServers()
 	
 	for _, aServer in next, tServers do
 		
-		local sLineOfText = ToString(aServer)
-		
-		fhSrc:write("\t{0," .. sLineOfText .. "},\n")
+		fhSrc:write("\t{0," .. ToString(aServer) .. "},\n")
 	end
 	
 	fhSrc:write("}\n\nreturn _servers\n")
@@ -152,7 +254,7 @@ local function Process()
 	
 	-- store table
 	--
-	m_App.tServers = tServers
+	m_App.tServers = ApplyFilters(tServers)
 	
 	return true
 end
