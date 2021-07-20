@@ -158,11 +158,10 @@ function DnsProtocol.FormatIPQuery(self, inType, inDestUrl)
 	--
 	if 1 == #tFrame then return nil, 0 end
 	
-	tFrame[#tFrame + 1] = "\0"		-- null terminator
-	tFrame[#tFrame + 1] = _chr(self.iType >> 8)
+	tFrame[#tFrame + 1] = "\0"							-- null terminator
+	tFrame[#tFrame + 1] = _chr(self.iType >> 8)
 	tFrame[#tFrame + 1] = _chr(self.iType % 0x0100)
-	
-	tFrame[#tFrame + 1] = "\0\1"		-- class IN	
+	tFrame[#tFrame + 1] = "\0\1"						-- class IN	
 	
 	-- this is the full frame, 1 question
 	--
