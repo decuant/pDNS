@@ -29,23 +29,60 @@ local m_App =
 -- these are filters examples divided by continent
 -- since name servers country codes are 2 digit long I used the list below
 --
+-- https://worldpopulationreview.com/country-rankings/list-of-countries-by-continent
+--
 -- https://en.wikipedia.org/wiki/Country_code_top-level_domain
 --
 local m_tF_Europe =
 {
 	"(IT)",				-- Italy
+	"(SM)",				-- San Marino
+	"(VA)",				-- Vatican City
+	"(GR)",				-- Greece
+	"(PO)",				-- Poland
 	"(DE)",				-- Germany
+	"(AT)",				-- Austria
+	"(BE)",				-- Belgium
 	"(NL)",				-- Netherlands
 	"(FR)",				-- France
+	"(DK)",				-- Denmark
+	"(FI)",				-- Finland
+	"(IS)",				-- Iceland
+	"(NO)",				-- Norway
+	"(SE)",				-- Sweden
+	"(CZ)",				-- Czech Republic
+	"(SK)",				-- Slovakia
+	"(HU)",				-- Hungary
+	"(RO)",				-- Romania
+	"(EE)",				-- Estonia
+	"(LV)",				-- Latvia
+	"(LT)",				-- Lithuania
+	"(MV)",				-- Moldova
+	"(LI)",				-- Liechtenstein
+	"(LU)",				-- Luxembourg
+	"(MC)",				-- Monaco
+	"(CH)",				-- Switzerland	
 	"(ES)",				-- Spain
+	"(PT)",				-- Portugal
+	"(AD)",				-- Andorra
+	"(SI)",				-- Slovenia
+	"(HR)",				-- Croatia (Hrvatska)
 	"(RS)",				-- Serbia
+	"(ME)",				-- Montenegro
+	"(MK)",				-- North Macedonia
+	"(AL)",				-- Albania
 	"(UK)",				-- United Kingdom
+	"(IE)",				-- Ireland
 }
 
 local m_tF_NorthAmerica =
 {
 	"(CA)",				-- Canada
 	"(US)",				-- United States
+	"(MX)",				-- Mexico
+	"(CU)",				-- Cuba
+	"(JM)",				-- Jamaica
+	"(GT)",				-- Guatemala
 }
 
 local m_tF_SouthAmerica =
@@ -101,7 +138,7 @@ local m_Config =
 	sFileInput		= "data/nameservers.csv",
 	sFileOutput		= "data/nameservers.lua",
 	
-	tFilters		= m_tF_Europe
+	tFilters		= nil, -- m_tF_Europe,
 }
 
 -- ----------------------------------------------------------------------------
@@ -109,11 +146,12 @@ local m_Config =
 --
 local function ApplyFilters(inTable)
 	
-	--if not inTable or 0 == #inTable then return nil end
 	if not inTable then return nil end
 	
 	local tResults = { }
 	local tFilters = m_Config.tFilters
+	
+	if not tFilters or 0 == #tFilters then return inTable end
 	
 	for _, server in next, inTable do
 		
@@ -139,10 +177,14 @@ local function ToString(inTable)
 	
 	local sOutput = { }
 	
-	for i=1, 3 do
+	-- provide a decent format for the addresses
+	--
+	for i=1, 2 do
 		
-		sOutput[#sOutput + 1] = _frmt("\"%s\"", inTable[i])
+		sOutput[#sOutput + 1] = _frmt("\"% 15s\"", inTable[i])
 	end
+
+	sOutput[#sOutput + 1] = _frmt("\"%s\"", inTable[3])
 
 	return _cat(sOutput, ", ")
 end
@@ -155,7 +197,7 @@ local function SaveServers()
 
 	local tServers = m_App.tServers
 	
-	if not tServers or 0 == #tServers then
+	if not tServers then
 		
 		m_logger:line("Servers' list is empty!")
 		
@@ -202,9 +244,10 @@ local function Process()
 		
 		-- split tokens
 		--
-		local iCellIndex = 1
-		local tCurRow = { }
-		local sPartial = ""
+		local iCellIndex	= 1
+		local tCurRow		= { }
+		local sPartial		= ""
+		local sLabel		= ""
 		
 		for sToken in string.gmatch(aLine, "[^,]*") do
 			
@@ -235,11 +278,11 @@ local function Process()
 			if iCellIndex > #tEnabled then break end
 		end
 		
-		local sLabel = tCurRow[2]
+		-- rows are not stored by index but using a label
+		--
+		sLabel = tCurRow[2]
 		
-		local tExisting = tServers[sLabel]
-		
-		if not tExisting then
+		if not tServers[sLabel] then
 			
 			-- add a new entry
 			--
