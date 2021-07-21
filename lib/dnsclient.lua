@@ -22,18 +22,24 @@
 *		2	address 2 succeeded
 *		3	both addresses succeeded
 *
+*
+* NB: 	although on ZeroBrane require "socket" would work anyway, running
+*		the application from a shell won't work, thus it is necessary to
+*		use the require "socket.core".
+*		in socket.dll the entry point is "luaopen_socket_core"!
 ]]
 
 -- ----------------------------------------------------------------------------
 --
-local socket	= require("socket")
+local socket	= require("socket.core")
 local DNSProt	= require("lib.dnsprotocol")
 local Timers	= require("lib.ticktimer")
 local trace 	= require("lib.trace")
 
+local _udp	= socket.udp
 local _frmt	= string.format
 local _cat	= table.concat
-local _udp	= socket.udp
+
 
 -- ----------------------------------------------------------------------------
 -- if the required trace does not exist then allocate a new one
