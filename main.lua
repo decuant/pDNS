@@ -24,17 +24,33 @@ local m_App =
 	sRelDate 		= "2021/07/19",
 
 	tServers		= { },					-- list of DNS servers
+	
+	iCurHost		= 0,					-- index for the next host
+	tSamples		= { },					-- list of sample hosts
 }
 
 -- ----------------------------------------------------------------------------
 --
 local m_Config =
 {
-	sConfigFile		= "data/servers.lua"
+	sConfigFile		= "data/servers.lua",
+	sHostsFile		= "data/samplehosts.lua",
 }
 
 -- ----------------------------------------------------------------------------
+-- get a name from the list in samplehosts.lua
 --
+local function GetNextHost()
+	
+	local iCurHost	= m_App.iCurHost
+	local tSamples	= m_App.tSamples
+	
+	iCurHost = iCurHost + 1
+	if iCurHost > #tSamples then iCurHost = 1 end
+	
+	m_App.iCurHost = iCurHost
+	return tSamples[iCurHost]
+end
 
 -- ----------------------------------------------------------------------------
 --
@@ -50,6 +66,32 @@ local m_Config =
 
 -- ----------------------------------------------------------------------------
 --
+
+-- ----------------------------------------------------------------------------
+-- import hosts' list from file
+--
+local function LoadSampleHosts()
+--	m_logger:line("LoadSampleHosts")	
+	
+	local sConfigFile = m_Config.sHostsFile
+	
+	m_logger:line("Loading hosts from file [" .. sConfigFile .. "]")
+
+	-- reset old values
+	--
+	m_App.iCurHost	= 0
+	m_App.tSamples	= { }
+	
+	-- process file
+	--
+	if not wx.wxFileName().Exists(sConfigFile) then return 0 end
+
+	local _tList = dofile(sConfigFile)
+	
+	if _tList then m_App.tSamples = _tList end
+
+	return #m_App.tSamples
+end
 
 -- ----------------------------------------------------------------------------
 -- import servers' list from file
@@ -85,6 +127,8 @@ local function ImportServersFromFile()
 			
 			tServers[i]:AddAddress(data[2])
 			tServers[i]:AddAddress(data[3])
+			
+			tServers[i]:SetQuestion(1, GetNextHost())
 		end
 		
 		m_App.tServers = tServers
@@ -141,6 +185,10 @@ local function SetUpApplication()
 	assert(os.setlocale('ita', 'all'))
 	m_logger:line("Current locale is [" .. os.setlocale() .. "]")
 	
+	-- load hosts from sample file
+	--
+	LoadSampleHosts()
+	
 	return true
 end
 
@@ -189,7 +237,7 @@ end
 local function SetupPublic()
 
 	m_App.ImportDNSFile = ImportServersFromFile
-	m_App.CreateClients = CreateClientsFromData
+--	m_App.GetNextHost	= GetNextHost
 	m_App.SaveDNSFile	= SaveServersFile
 end
 
