@@ -23,10 +23,10 @@
 *		3	both addresses succeeded
 *
 *
-* NB: 	although on ZeroBrane require "socket" would work anyway, running
+* NB: 	although on ZeroBrane <require "socket"> would work anyway, running
 *		the application from a shell won't work, thus it is necessary to
-*		use the require "socket.core".
-*		in socket.dll the entry point is "luaopen_socket_core"!
+*		use the <require "socket.core">.
+*		in fact in socket.dll the entry point is "luaopen_socket_core"!
 ]]
 
 -- ----------------------------------------------------------------------------
@@ -36,10 +36,9 @@ local DNSProt	= require("lib.dnsprotocol")
 local Timers	= require("lib.ticktimer")
 local trace 	= require("lib.trace")
 
-local _udp	= socket.udp
-local _frmt	= string.format
-local _cat	= table.concat
-
+local _udp		= socket.udp
+local _frmt		= string.format
+local _cat		= table.concat
 
 -- ----------------------------------------------------------------------------
 -- if the required trace does not exist then allocate a new one
@@ -51,59 +50,6 @@ local m_trace = trace.new("debug")
 -- multiple instances (1 for each address)
 --
 local m_Protocol = DNSProt.new()
-
--- ----------------------------------------------------------------------------
--- list of test urls
---
-local m_tHostURLs =
-{ 	
-	"worldweather.wmo.int",
-	"www.ildubbio.news",
-	"www.barbarianfc.co.uk",
-	"support.microsoft.com",
-	"www.example.com",
-	"lua-users.org",
-	"pcsupport.lenovo.com",
-	"news.ycombinator.com",
-	"graphics.stanford.edu",
-	"www.ilfattoquotidiano.it",
-	"root-servers.org",
-	"time.com",
-	"www.wordreference.com",
-	"photo.net",
-	"www.opensubtitles.org",
-	"worldarchery.sport",
-	"en.wikipedia.org",
-	"dillinger.io",
-	"wxwidgets.org",
-	"docs.microsoft.com",
-	"satellites.pro",
-	"english.alarabiya.net",
-	"www.facebook.com",
-	"www.baobabs.com",
-	"www.gmail.com",
-	"tineye.com",
-	"www.nasa.gov",
-	"www.imdb.com",
-	"it.glosbe.com",
-	"olympics.com",
-	"www.thisanerror.xyz",
-	"www.photo.net",
-	"it.yahoo.com",
-}
-
--- ----------------------------------------------------------------------------
--- get a name from the list above
---
-local m_iCurHost = 0
-
-local function _getNextHost()
-	
-	m_iCurHost = m_iCurHost + 1
-	if m_iCurHost > #m_tHostURLs then m_iCurHost = 1 end
-	
-	return m_tHostURLs[m_iCurHost]
-end
 
 -- ----------------------------------------------------------------------------
 -- remove leading whitespace from string.
@@ -190,6 +136,9 @@ function DnsClient.new(inEnabled, inLabel)
 		
 		tAddresses	= { },						-- associated addresses
 		iDnsResult	= 0,						-- 0/1/2/3 result of query
+		
+		iQueryType	= 1,						-- type of query for dns server
+		sQueryHost	= "",						-- host to resolve
 	}
 	
 	return setmetatable(t, DnsClient)
@@ -283,6 +232,15 @@ function DnsClient.Result(self)
 end
 
 -- ----------------------------------------------------------------------------
+-- get the return value after query and answer
+--
+function DnsClient.SetQuestion(self, inType, inHost)
+	
+	self.iQueryType	= inType or 1				-- type of query for dns server
+	self.sQueryHost	= inHost or ""				-- host to resolve
+end
+
+-- ----------------------------------------------------------------------------
 -- main switch
 --
 function DnsClient.ProcessStatus(self, inIndex)
@@ -369,7 +327,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 		
 		-- build the query
 		--
-		local sQuestion, iFrameId = m_Protocol:FormatIPQuery(1, _getNextHost())
+		local sQuestion, iFrameId = m_Protocol:FormatIPQuery(self.iQueryType, self.sQueryHost)
 		
 		if not sQuestion or not hSocket:sendto(sQuestion, sAddress, 53) then
 			
