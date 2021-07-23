@@ -16,7 +16,7 @@ local _abs		= math.abs
 -- ----------------------------------------------------------------------------
 --
 local m_thisApp	 		= nil
-local m_iBkTskInterval 	= 25
+local m_iBkTskInterval 	= 5
 local m_iBatchLimit		= 10
 
 -- ----------------------------------------------------------------------------
@@ -26,7 +26,7 @@ local m_logger = trace.new("debug")
 -- ----------------------------------------------------------------------------
 -- colors combinations
 --
-local m_tDefColors = 
+local m_tDefColours = 
 {
 	tSchemeDark =
 	{
@@ -34,14 +34,14 @@ local m_tDefColors =
 		cColFo0	= palette.WhiteSmoke,
 		cColBk1	= palette.Black,
 		cColFo1	= palette.WhiteSmoke,
-		cColBk2	= palette.Gray10,
+		cColBk2	= palette.Gray15,
 		cColFo2	= palette.WhiteSmoke,
 		cColBk3	= palette.Gray40,
-		cColFo3	= palette.Burlywood2,		
+		cColFo3	= palette.Burlywood2,
 		cFail	= palette.OrangeRed,
 		cSucc	= palette.MediumSeaGreen,
 		cLines	= palette.Gray60,
-		CLblBk	= palette.MediumPurple4,		
+		CLblBk	= palette.MediumPurple4,
 		CLblFo	= palette.PaleGoldenrod,
 	},
 	
@@ -52,13 +52,13 @@ local m_tDefColors =
 		cColBk1	= palette.Gray100,
 		cColFo1	= palette.Black,
 		cColBk2	= palette.WhiteSmoke,
-		cColFo2	= palette.Black,		
+		cColFo2	= palette.Black,
 		cColBk3	= palette.Honeydew2,
-		cColFo3	= palette.DodgerBlue4,		
+		cColFo3	= palette.DodgerBlue4,
 		cFail	= palette.IndianRed,
 		cSucc	= palette.MediumAquamarine,
 		cLines	= palette.Ivory3,
-		CLblBk	= palette.Wheat3,		
+		CLblBk	= palette.Wheat3,
 		CLblFo	= palette.Ivory1,
 	},
 }
@@ -71,6 +71,8 @@ local m_sGdLbls =
 	"E.", "#1", "#2", "Organization"
 }
 
+local m_tGdFont = {13, "Calibri"}					-- font for the grid and notebook
+
 -- ----------------------------------------------------------------------------
 -- default dialog size and position
 --
@@ -79,10 +81,8 @@ local m_tDefWinProp =
 	window_xy	= {20,	 20},						-- top, left
 	window_wh	= {750,	265},						-- width, height
 	grid_ruler	= {75, 200, 200, 500},				-- size of each column
-	font_size	= 13,								-- size of font for the grid
+--	font_size	= 13,								-- size of font for the grid
 }
-
-local m_UseFont = "Calibri"							-- font for the grid and notebook
 
 -- ----------------------------------------------------------------------------
 -- contains various handlers and values
@@ -94,7 +94,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColors.tSchemeDark,		-- colours for the grid
+	tColors			= m_tDefColours.tSchemeDark,	-- colours for the grid
 
 	hTickTimer		= nil,							-- timer associated with window
 	bReentryLock	= false,						-- avoid re-entrant calling
@@ -108,7 +108,7 @@ local m_Mainframe =
 -- read dialogs' settings from settings file
 --
 local function ReadSettings()
-	m_logger:line("ReadSettings")
+--	m_logger:line("ReadSettings")
 
 	local fd = io.open(m_Mainframe.sSettings, "r")
 	if not fd then return end
@@ -124,28 +124,25 @@ end
 -- save a table to the settings file
 --
 local function SaveSettings()
-	m_logger:line("SaveSettings")
+--	m_logger:line("SaveSettings")
 
 	local fd = io.open(m_Mainframe.sSettings, "w")
 	if not fd then return end
 
 	fd:write("local window_ini =\n{\n")
-	
+
 	local tWinProps = m_Mainframe.tWinProps
 	local sLine
-	
+
 	sLine = _frmt("\twindow_xy\t= {%d, %d},\n", tWinProps.window_xy[1], tWinProps.window_xy[2])
 	fd:write(sLine)
-	
+
 	sLine = _frmt("\twindow_wh\t= {%d, %d},\n", tWinProps.window_wh[1], tWinProps.window_wh[2])
 	fd:write(sLine)
 
 	sLine = _frmt("\tgrid_ruler\t= {%d, %d, %d, %d},\n", 
 					tWinProps.grid_ruler[1], tWinProps.grid_ruler[2],
 					tWinProps.grid_ruler[3], tWinProps.grid_ruler[4])
-	fd:write(sLine)
-
-	sLine = _frmt("\tfont_size\t= %d,\n", tWinProps.font_size)
 	fd:write(sLine)
 
 	fd:write("}\n\nreturn window_ini\n")
@@ -240,29 +237,10 @@ local function EnableBacktask(inEnable)
 end
 
 -- ----------------------------------------------------------------------------
--- save the settings file
---
-local function OnSaveServers()
---	m_logger:line("OnSaveServers")
-
-	local ret = m_thisApp.SaveDNSFile()
-
-	if 0 == ret then DlgMessage("Failed to save DNS servers' list") return end
-end
-
--- ----------------------------------------------------------------------------
 -- read the settings file
 --
-local function OnImportServers()
---	m_logger:line("OnImportServers")
-	
-	-- read the settings file and create the clients
-	--
-	local ret
-
-	ret = m_thisApp.ImportDNSFile()
-	
-	if 0 == ret then DlgMessage("Failed to read DNS servers' list\nor the list is empty") return end
+local function ShowServers()
+	m_logger:line("ShowServers")
 	
 	-- remove all rows
 	--
@@ -293,6 +271,34 @@ local function OnImportServers()
 	end
 end
 
+-- ----------------------------------------------------------------------------
+-- save the settings file
+--
+local function OnSaveServers()
+--	m_logger:line("OnSaveServers")
+
+	local ret = m_thisApp.SaveDNSFile()
+
+	if 0 == ret then DlgMessage("Failed to save DNS servers' list") return end
+end
+
+-- ----------------------------------------------------------------------------
+-- read the settings file
+--
+local function OnImportServers()
+--	m_logger:line("OnImportServers")
+	
+	-- read the settings file and create the clients
+	--
+	local ret
+
+	ret = m_thisApp.ImportDNSFile()
+	
+	if 0 == ret then DlgMessage("Failed to read DNS servers' list\nor the list is empty") return end
+
+	ShowServers()
+end
+	
 -- ----------------------------------------------------------------------------
 -- set the enable flag for all DNS servers or a specific row
 --
@@ -361,10 +367,7 @@ local function OnResetCompleted()
 
 	-- check each server
 	--
-	for _, server in next, tServers do
-		
-		server:Restart()
-	end
+	for _, server in next, tServers do server:Restart() end
 
 	for i=1, #tServers do
 		
@@ -373,6 +376,16 @@ local function OnResetCompleted()
 	end
 	
 	grid:ForceRefresh()					-- seldom there's no colour changing
+end
+
+-- ----------------------------------------------------------------------------
+-- reset the DNS client to the start
+--
+local function PurgeHosts(inWhich)
+	m_logger:line("PurgeHosts")
+
+	m_thisApp.PurgeHosts(inWhich)			-- update
+	ShowServers()							-- refresh the view
 end
 
 -- ----------------------------------------------------------------------------
@@ -413,7 +426,7 @@ local function OnTickTimer()
 				
 				for y=1, 2 do
 					
-					if 0 < (iDnsRes >> (y - 1)) then
+					if 0 < ((iDnsRes >> (y - 1)) & 0x01) then
 					
 						grid:SetCellBackgroundColour(i - 1, y, tColors.cSucc)
 					else
@@ -533,10 +546,9 @@ local function OnCloseMainframe()
 	tWinProps.window_xy = {pos:GetX(), pos:GetY()}
 	tWinProps.window_wh = {size:GetWidth(), size:GetHeight()}
 	tWinProps.grid_ruler= tColWidths
-	tWinProps.font_size	= m_Mainframe.tWinProps.font_size
-	
+
 	m_Mainframe.tWinProps = tWinProps			-- switch structures
-	
+
 	SaveSettings()								-- write to file
 
 	m_Mainframe.hWindow.Destroy(m_Mainframe.hWindow)
@@ -551,28 +563,28 @@ local function SetGridStyles(inGrid)
 
 	local tWinProps = m_Mainframe.tWinProps
 	local tRulers	= tWinProps.grid_ruler
-	local iFontSize	= tWinProps.font_size
 	local tColors	= m_Mainframe.tColors
+	local iFontSize	= m_tGdFont[1]
+	local sFontname	= m_tGdFont[2]
 	
 	local fntCell = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
-							   wx.wxFONTWEIGHT_LIGHT, false, m_UseFont, wx.wxFONTENCODING_SYSTEM)
+							   wx.wxFONTWEIGHT_LIGHT, false, sFontname, wx.wxFONTENCODING_SYSTEM)
 
 	local fntLbl  = wx.wxFont( iFontSize - 1, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
-							   wx.wxFONTWEIGHT_LIGHT, false, m_UseFont, wx.wxFONTENCODING_SYSTEM)
-						   
+							   wx.wxFONTWEIGHT_LIGHT, false, sFontname, wx.wxFONTENCODING_SYSTEM)
+
 	local tAttrs = { }
-	
+
 	tAttrs[1] = wx.wxGridCellAttr(tColors.cColFo0, tColors.cColBk0, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
 	tAttrs[2] = wx.wxGridCellAttr(tColors.cColFo1, tColors.cColBk1, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
 	tAttrs[3] = wx.wxGridCellAttr(tColors.cColFo2, tColors.cColBk2, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
 	tAttrs[4] = wx.wxGridCellAttr(tColors.cColFo3, tColors.cColBk3, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)	
 
---	inGrid:ClearGrid()
 	inGrid:CreateGrid(50, #tRulers)								-- some rows ad libitum
 	inGrid:DisableDragRowSize()
 	inGrid:DisableDragCell()
 	inGrid:SetSelectionMode(1) 									-- wx.wxGridSelectRows = 1
-	
+
 	-- headers and rows
 	--
 	inGrid:SetLabelBackgroundColour(tColors.CLblBk)
@@ -613,7 +625,10 @@ function CreateMainWindow(inApplication)
 	local rcMnuDisableAll   = NewMenuID()
 	local rcMnuEnableAll	= NewMenuID()
 	local rcMnuToggleEn		= NewMenuID()
-	
+
+	local rcMnuFilterIN		= NewMenuID()
+	local rcMnuFilterOUT	= NewMenuID()
+
 	-- ------------------------------------------------------------------------	
 	-- create a window
 	--
@@ -646,11 +661,16 @@ function CreateMainWindow(inApplication)
 	
 	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
-	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-P",	"Start/Stop the backtask")
+	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-B",	"Start/Stop the backtask")
 	mnuCmds:Append(rcMnuResetCmpltd,"Reset completed\tCtrl-R",	"Reset the completed flag")
 	
+	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
+
+	mnuFilt:Append(rcMnuFilterIN,	"Purge failed\tCtrl-Z",		"Remove non responding hosts")
+	mnuFilt:Append(rcMnuFilterOUT,	"Purge succeeded\tCtrl-X",	"Remove responding hosts")
+
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
-	
+
 	mnuHelp:Append(wx.wxID_ABOUT,    "&About",					"About the application")
 
 	-- create the menu bar and associate sub-menus
@@ -660,6 +680,7 @@ function CreateMainWindow(inApplication)
 	mnuBar:Append(mnuFile,	"&File")
 	mnuBar:Append(mnuEdit,	"&Edit")
 	mnuBar:Append(mnuCmds,	"&Commands")
+	mnuBar:Append(mnuFilt,	"&Filter")
 	mnuBar:Append(mnuHelp,	"&Help")
 
 	frame:SetMenuBar(mnuBar)
@@ -693,6 +714,9 @@ function CreateMainWindow(inApplication)
 
 	frame:Connect(rcMnuToggleBkTsk,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() EnableBacktask(not BacktaskRunning()) end)
 	frame:Connect(rcMnuResetCmpltd,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnResetCompleted)
+	
+	frame:Connect(rcMnuFilterIN,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() PurgeHosts(0) end)
+	frame:Connect(rcMnuFilterOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, function() PurgeHosts(1) end)
 
 	frame:Connect(wx.wxID_EXIT,		wx.wxEVT_COMMAND_MENU_SELECTED, CloseMainWindow)
 	frame:Connect(wx.wxID_ABOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, OnAbout)
@@ -700,9 +724,12 @@ function CreateMainWindow(inApplication)
 	-- ------------------------------------------------------------------------
 	-- create a notebook style pane and apply styles
 	--
+	local iFontSize	= m_tGdFont[1]
+	local sFontname	= m_tGdFont[2]
+
 	local notebook = wx.wxNotebook(frame, wx.wxID_ANY)
-	local fntNote  = wx.wxFont( 13, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
-							    wx.wxFONTWEIGHT_BOLD, false, m_UseFont, wx.wxFONTENCODING_SYSTEM)
+	local fntNote  = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
+							    wx.wxFONTWEIGHT_BOLD, false, sFontname, wx.wxFONTENCODING_SYSTEM)
 
 	notebook:SetBackgroundColour(palette.Gray20)
 	notebook:SetFont(fntNote)
