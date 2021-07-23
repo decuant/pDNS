@@ -62,10 +62,52 @@ end
 --
 
 -- ----------------------------------------------------------------------------
+-- remove servers from the main table depending on the criteria
+-- 0: remove failing hosts
+-- 1: remove responding hosts
 --
+local function PurgeHosts(inWhich)
+	m_logger:line("PurgeHosts")
 
--- ----------------------------------------------------------------------------
---
+	local tServers	= m_App.tServers
+	local tResult	= { }
+	
+	for _, server in next, tServers do
+		
+		if 1 == server.iEnabled and server:HasCompletedAll() then
+			
+			local iDnsRes 	= server:Result()
+			local iExpected = 0
+			
+			for i=1, #server.tAddresses do
+				
+				if server:IsValid(i) then iExpected = iExpected + (1 << (i - 1)) end
+			end
+			
+			if 1 == inWhich then
+				
+				-- keep failed
+				--
+				if iExpected ~= iDnsRes then tResult[#tResult + 1] = server end
+			else
+				
+				-- keep responding
+				--
+				if iExpected == iDnsRes then tResult[#tResult + 1] = server end
+			end
+			
+		else
+			
+			-- if not enabled or not completed then must save it
+			--
+			tResult[#tResult + 1] = server
+		end
+	end
+	
+	-- if we have results then swap tables
+	--
+	if #tResult then m_App.tServers = tResult end
+end
 
 -- ----------------------------------------------------------------------------
 -- import hosts' list from file
@@ -123,11 +165,17 @@ local function ImportServersFromFile()
 		--
 		for i, data in next, _tList do
 		
+			-- assign enable state and name
+			--
 			tServers[i] = DNSFactory.new(data[1], data[4])
 			
+			-- assign addresses
+			--
 			tServers[i]:AddAddress(data[2])
 			tServers[i]:AddAddress(data[3])
 			
+			-- assign a host for question
+			--
 			tServers[i]:SetQuestion(1, GetNextHost())
 		end
 		
@@ -237,8 +285,8 @@ end
 local function SetupPublic()
 
 	m_App.ImportDNSFile = ImportServersFromFile
---	m_App.GetNextHost	= GetNextHost
 	m_App.SaveDNSFile	= SaveServersFile
+	m_App.PurgeHosts	= PurgeHosts
 end
 
 -- ----------------------------------------------------------------------------

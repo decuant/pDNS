@@ -57,7 +57,7 @@ local m_tF_Europe =
 	"(EE)",				-- Estonia
 	"(LV)",				-- Latvia
 	"(LT)",				-- Lithuania
-	"(MV)",				-- Moldova
+	"(MD)",				-- Moldova
 	"(LI)",				-- Liechtenstein
 	"(LU)",				-- Luxembourg
 	"(MC)",				-- Monaco
@@ -102,6 +102,7 @@ local m_tF_Asia =
 	"(HK)",				-- Hong Kong
 	"(TR)",				-- Turkey
 	"(TW)",				-- Taiwan
+	"(MV)",				-- Maldives
 }
 
 local m_tF_Africa =
