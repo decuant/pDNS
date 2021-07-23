@@ -1,12 +1,13 @@
 -- ----------------------------------------------------------------------------
 --
---  pDNS - polling dns
+-- pDNS - polling dns
 --
 -- ----------------------------------------------------------------------------
 
-local trace		= require("lib.trace")		-- shortcut for tracing
-local _			= require("lib.window")		-- GUI for the application
-local DNSFactory= require("lib.dnsclient")
+local constants	= require("lib.constants")		-- global constants
+local trace		= require("lib.trace")			-- shortcut for tracing
+local mainWin	= require("lib.window")			-- GUI for the application
+local DNSFactory= require("lib.dnsclient")		-- DNS client
 
 local _frmt		= string.format
 local _cat		= table.concat
@@ -19,9 +20,9 @@ local m_logger = trace.new("debug")
 --
 local m_App =
 {
-	sAppVersion		= "0.0.3",				-- application's version
+	sAppVersion		= "0.0.4",				-- application's version
 	sAppName		= "Polling DNS",		-- name for the application
-	sRelDate 		= "2021/07/19",
+	sRelDate 		= "2021/07/23",
 
 	tServers		= { },					-- list of DNS servers
 	
@@ -67,11 +68,11 @@ end
 -- 1: remove responding hosts
 --
 local function PurgeHosts(inWhich)
-	m_logger:line("PurgeHosts")
+--	m_logger:line("PurgeHosts")
 
 	local tServers	= m_App.tServers
 	local tResult	= { }
-	
+
 	for _, server in next, tServers do
 		
 		if 1 == server.iEnabled and server:HasCompletedAll() then
@@ -79,23 +80,30 @@ local function PurgeHosts(inWhich)
 			local iDnsRes 	= server:Result()
 			local iExpected = 0
 			
+			-- sum up the expected result
+			--
 			for i=1, #server.tAddresses do
 				
 				if server:IsValid(i) then iExpected = iExpected + (1 << (i - 1)) end
 			end
 			
-			if 1 == inWhich then
+			if constants.Purge.verified == inWhich then
 				
 				-- keep failed
 				--
-				if iExpected ~= iDnsRes then tResult[#tResult + 1] = server end
+				if iExpected ~= iDnsRes then
+					
+					tResult[#tResult + 1] = server
+				end
 			else
 				
 				-- keep responding
 				--
-				if iExpected == iDnsRes then tResult[#tResult + 1] = server end
+				if iExpected == iDnsRes then
+					
+					tResult[#tResult + 1] = server
+				end
 			end
-			
 		else
 			
 			-- if not enabled or not completed then must save it
@@ -106,7 +114,15 @@ local function PurgeHosts(inWhich)
 	
 	-- if we have results then swap tables
 	--
-	if #tResult then m_App.tServers = tResult end
+	local bModified	= (#m_App.tServers ~= #tResult)
+	
+	if bModified then
+		
+		m_App.tServers = tResult
+		collectgarbage()
+	end
+	
+	return bModified
 end
 
 -- ----------------------------------------------------------------------------
@@ -247,8 +263,8 @@ end
 local function ShowGUI()
 --	m_logger:line("ShowGUI")
 	
-	CreateMainWindow(m_App)
-	ShowMainWindow()
+	mainWin.CreateMainWindow(m_App)
+	mainWin.ShowMainWindow()
 end
 
 -- ----------------------------------------------------------------------------
