@@ -4,9 +4,10 @@
 --
 -- ----------------------------------------------------------------------------
 
-local wx 		= require("wx")            -- uses wxWidgets for Lua
-local trace		= require("lib.trace")		-- shortcut for tracing
-local palette	= require("lib.wxX11Palette")
+local wx 		= require("wx")					-- uses wxWidgets for Lua
+local constants	= require("lib.constants")		-- global constants
+local trace		= require("lib.trace")			-- shortcut for tracing
+local palette	= require("lib.wxX11Palette")	-- declarations for colors
 
 local _frmt		= string.format
 local _min		= math.min
@@ -15,8 +16,8 @@ local _abs		= math.abs
 
 -- ----------------------------------------------------------------------------
 --
-local m_thisApp	 		= nil
-local m_iBkTskInterval 	= 5
+local m_thisApp			= nil
+local m_iBkTskInterval	= 5
 local m_iBatchLimit		= 10
 
 -- ----------------------------------------------------------------------------
@@ -26,7 +27,7 @@ local m_logger = trace.new("debug")
 -- ----------------------------------------------------------------------------
 -- colors combinations
 --
-local m_tDefColours = 
+local m_tDefColours <const> = 
 {
 	tSchemeDark =
 	{
@@ -81,7 +82,6 @@ local m_tDefWinProp =
 	window_xy	= {20,	 20},						-- top, left
 	window_wh	= {750,	265},						-- width, height
 	grid_ruler	= {75, 200, 200, 500},				-- size of each column
---	font_size	= 13,								-- size of font for the grid
 }
 
 -- ----------------------------------------------------------------------------
@@ -240,7 +240,7 @@ end
 -- read the settings file
 --
 local function ShowServers()
-	m_logger:line("ShowServers")
+--	m_logger:line("ShowServers")
 	
 	-- remove all rows
 	--
@@ -381,11 +381,10 @@ end
 -- ----------------------------------------------------------------------------
 -- reset the DNS client to the start
 --
-local function PurgeHosts(inWhich)
-	m_logger:line("PurgeHosts")
+local function OnPurgeHosts(inWhich)
+--	m_logger:line("OnPurgeHosts")
 
-	m_thisApp.PurgeHosts(inWhich)			-- update
-	ShowServers()							-- refresh the view
+	if m_thisApp.PurgeHosts(inWhich) then ShowServers()	end
 end
 
 -- ----------------------------------------------------------------------------
@@ -603,9 +602,34 @@ local function SetGridStyles(inGrid)
 end
 
 -- ----------------------------------------------------------------------------
+-- show the main window and runs the main loop
+--
+local function ShowMainWindow()
+--	m_logger:line("ShowMainWindow")
+
+	if not m_Mainframe.hWindow then return end
+
+	m_Mainframe.hWindow:Show(true)
+	
+	OnImportServers()
+
+	-- run the main loop
+	--
+	wx.wxGetApp():MainLoop()
+end
+
+-- ----------------------------------------------------------------------------
+--
+local function CloseMainWindow()
+--	m_logger:line("CloseMainWindow")
+	
+	if m_Mainframe.hWindow then OnCloseMainframe() end
+end
+
+-- ----------------------------------------------------------------------------
 -- called to create the main window
 --
-function CreateMainWindow(inApplication)
+local function CreateMainWindow(inApplication)
 --	trace:line("CreateMainWindow")
 	
 	m_thisApp  = inApplication
@@ -626,8 +650,8 @@ function CreateMainWindow(inApplication)
 	local rcMnuEnableAll	= NewMenuID()
 	local rcMnuToggleEn		= NewMenuID()
 
-	local rcMnuFilterIN		= NewMenuID()
-	local rcMnuFilterOUT	= NewMenuID()
+	local rcMnuFilter_OK	= NewMenuID()
+	local rcMnuFilter_KO	= NewMenuID()
 
 	-- ------------------------------------------------------------------------	
 	-- create a window
@@ -666,8 +690,8 @@ function CreateMainWindow(inApplication)
 	
 	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
-	mnuFilt:Append(rcMnuFilterIN,	"Purge failed\tCtrl-Z",		"Remove non responding hosts")
-	mnuFilt:Append(rcMnuFilterOUT,	"Purge succeeded\tCtrl-X",	"Remove responding hosts")
+	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-Z",		"Remove non responding hosts")
+	mnuFilt:Append(rcMnuFilter_KO,	"Purge succeeded\tCtrl-X",	"Remove responding hosts")
 
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -715,8 +739,8 @@ function CreateMainWindow(inApplication)
 	frame:Connect(rcMnuToggleBkTsk,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() EnableBacktask(not BacktaskRunning()) end)
 	frame:Connect(rcMnuResetCmpltd,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnResetCompleted)
 	
-	frame:Connect(rcMnuFilterIN,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() PurgeHosts(0) end)
-	frame:Connect(rcMnuFilterOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, function() PurgeHosts(1) end)
+	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeHosts(constants.Purge.failed) end)
+	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeHosts(constants.Purge.verified) end)
 
 	frame:Connect(wx.wxID_EXIT,		wx.wxEVT_COMMAND_MENU_SELECTED, CloseMainWindow)
 	frame:Connect(wx.wxID_ABOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, OnAbout)
@@ -757,29 +781,19 @@ function CreateMainWindow(inApplication)
 end
 
 -- ----------------------------------------------------------------------------
--- show the main window and runs the main loop
+-- associate functions
 --
-function ShowMainWindow()
---	m_logger:line("ShowMainWindow")
-
-	if not m_Mainframe.hWindow then return end
-
-	m_Mainframe.hWindow:Show(true)
-	
-	OnImportServers()
-
-	-- run the main loop
-	--
-	wx.wxGetApp():MainLoop()
+local function SetupPublic()
+	m_Mainframe.CreateMainWindow	= CreateMainWindow
+	m_Mainframe.ShowMainWindow		= ShowMainWindow
+	m_Mainframe.CloseMainWindow		= CloseMainWindow
 end
 
 -- ----------------------------------------------------------------------------
 --
-function CloseMainWindow()
---	m_logger:line("CloseMainWindow")
-	
-	if m_Mainframe.hWindow then OnCloseMainframe() end
-end
+SetupPublic()
+
+return m_Mainframe
 
 -- ----------------------------------------------------------------------------
 -- ----------------------------------------------------------------------------
