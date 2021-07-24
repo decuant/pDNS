@@ -67,8 +67,8 @@ end
 -- 0: remove failing hosts
 -- 1: remove responding hosts
 --
-local function PurgeHosts(inWhich)
---	m_logger:line("PurgeHosts")
+local function PurgeServers(inWhich)
+--	m_logger:line("PurgeServers")
 
 	local tServers	= m_App.tServers
 	local tResult	= { }
@@ -123,6 +123,77 @@ local function PurgeHosts(inWhich)
 	end
 	
 	return bModified
+end
+
+-- ----------------------------------------------------------------------------
+-- receive a list of rows to update and returns a list of rows updated
+-- note that it's a 1 based list
+--
+local function EnableServers(inRowsList, inEnabled)
+--	m_logger:line("EnableServers")
+
+	local tServers 	= m_App.tServers
+	local tReturn	= { }
+
+	-- if either the rows' list or the servers' list are empty
+	-- then return an empty list
+	--
+	if 0 == #tServers or 0 == #inRowsList then return tReturn end
+
+	local server
+
+	for _, row in next, inRowsList do
+		
+		server = tServers[row]
+		
+		if server then 
+			
+			server.iEnabled = inEnabled 
+			tReturn[#tReturn + 1] = row
+		end
+	end
+
+	return tReturn
+end
+-- ----------------------------------------------------------------------------
+-- receive a list of rows to delete
+-- note that it's a 1 based list
+--
+local function DeleteServers(inRowsList)
+--	m_logger:line("DeleteServers")
+	
+	local tServers 	= m_App.tServers
+	
+	-- check if applicable
+	--
+	if 0 == #tServers or 0 == #inRowsList then return end
+	
+	local tList = { }
+	local y 	= 1
+	
+	for i=1, #inRowsList do
+		
+		while inRowsList[i] > y do
+			
+			tList[#tList + 1] = tServers[y]
+			y = y + 1
+		end
+		
+		y = inRowsList[i] + 1
+	end
+	
+	-- copy over the remaining servers
+	--
+	while y <= #tServers do
+		
+		tList[#tList + 1] = tServers[y]
+		y = y + 1
+	end
+
+	-- store result
+	--
+	m_App.tServers = tList
+	collectgarbage()
 end
 
 -- ----------------------------------------------------------------------------
@@ -302,7 +373,9 @@ local function SetupPublic()
 
 	m_App.ImportDNSFile = ImportServersFromFile
 	m_App.SaveDNSFile	= SaveServersFile
-	m_App.PurgeHosts	= PurgeHosts
+	m_App.EnableServers	= EnableServers
+	m_App.PurgeServers	= PurgeServers
+	m_App.DeleteServers	= DeleteServers
 end
 
 -- ----------------------------------------------------------------------------
