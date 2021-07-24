@@ -394,7 +394,7 @@ function DnsClient.RunTask(self)
 	
 	-- fail check (nothing to do)
 	--
-	if 0 == #self.tAddresses then return end
+	if not next(self.tAddresses) then return end
 	
 	m_trace:summary("Server: " .. self.sReference)	
 	

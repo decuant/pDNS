@@ -360,7 +360,7 @@ local function OnDeleteSelected()
 	local grid 		= m_Mainframe.hGridDNSList
 	local tSelected = grid:GetSelectedRows():ToLuaTable()
 	
-	if 0 == #tSelected then DlgMessage("Select rows to delete") return end
+	if not next(tSelected) then DlgMessage("Select rows to delete") return end
 
 	-- from base 0 to base 1
 	--
