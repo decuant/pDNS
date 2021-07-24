@@ -30,6 +30,7 @@ A list of country codes, divided by continent, can be used to filter out rows of
 
 ### Rel. 0.0.4
 
+- Added deletion of selected servers.
 - Added possibility to purge from the servers' list either the verified or the failing ones.
 - Added a module ```constants.lua``` to keep constants in one place.
 
@@ -42,5 +43,3 @@ The author can be reached at decuant@gmail.com
 ## License
 
 The standard MIT license applies.
-
-
