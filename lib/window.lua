@@ -290,9 +290,7 @@ local function OnImportServers()
 	
 	-- read the settings file and create the clients
 	--
-	local ret
-
-	ret = m_thisApp.ImportDNSFile()
+	local ret = m_thisApp.ImportDNSFile()
 	
 	if 0 == ret then DlgMessage("Failed to read DNS servers' list\nor the list is empty") return end
 
@@ -301,39 +299,37 @@ end
 	
 -- ----------------------------------------------------------------------------
 -- set the enable flag for all DNS servers or a specific row
+-- here the inRow ca have 2 values:
+-- -1 means all rows
+-- a zero based index (wxWidgets is zero based)
 --
 local function SetEnable(inRow, inEnabled)
-	
-	local tDNS = m_thisApp.tServers
-	
-	if 0 == #tDNS then return end
-	if inRow >= #tDNS then return end
-	
-	local grid = m_Mainframe.hGridDNSList	
-	local tCurrent
+--	m_logger:line("SetEnable")	
+
+	local tServer	= m_thisApp.tServers
+	local tRowsList	= { }
 	
 	if -1 == inRow then
 		
 		-- all rows
-		--
-		for iIndex=0, #tDNS - 1 do
-		
-			tCurrent = tDNS[iIndex + 1]
-			
-			tCurrent.iEnabled = inEnabled		-- update memory
-			
-			grid:SetCellValue(iIndex, 0, tostring(tCurrent.iEnabled))		-- active state
-		end
-		
+		--		
+		for i=1, #tServer do tRowsList[i] = i end
 	else
 		
 		-- selected row only
 		--
-		tCurrent = tDNS[inRow + 1]
+		tRowsList[1] = inRow + 1
+	end
+	
+	-- give a list of rows and get back a list of rows
+	--
+	tRowsList = m_thisApp.EnableServers(tRowsList, inEnabled)
+	
+	local grid = m_Mainframe.hGridDNSList	
+	
+	for i=1, #tRowsList do
 		
-		tCurrent.iEnabled = inEnabled			-- update memory
-		
-		grid:SetCellValue(inRow, 0, tostring(tCurrent.iEnabled))		-- active state		
+		grid:SetCellValue(tRowsList[i] - 1, 0, tostring(inEnabled))
 	end
 end
 
@@ -356,6 +352,30 @@ local function OnToggleEnable()
 end
 
 -- ----------------------------------------------------------------------------
+-- delete selected rows
+--
+local function OnDeleteSelected()
+--	m_logger:line("OnDeleteSelected")	
+
+	local grid 		= m_Mainframe.hGridDNSList
+	local tSelected = grid:GetSelectedRows():ToLuaTable()
+	
+	if 0 == #tSelected then DlgMessage("Select rows to delete") return end
+
+	-- from base 0 to base 1
+	--
+	for i=1, #tSelected do tSelected[i] = tSelected[i] + 1 end
+	
+	-- remove
+	--
+	m_thisApp.DeleteServers(tSelected)
+
+	-- refresh view
+	--
+	ShowServers()
+end
+
+-- ----------------------------------------------------------------------------
 -- reset the DNS client to the start
 --
 local function OnResetCompleted()
@@ -365,7 +385,7 @@ local function OnResetCompleted()
 	local grid 		= m_Mainframe.hGridDNSList
 	local tColors	= m_Mainframe.tColors
 
-	-- check each server
+	-- set each server to unchecked
 	--
 	for _, server in next, tServers do server:Restart() end
 
@@ -381,10 +401,10 @@ end
 -- ----------------------------------------------------------------------------
 -- reset the DNS client to the start
 --
-local function OnPurgeHosts(inWhich)
---	m_logger:line("OnPurgeHosts")
+local function OnPurgeServers(inWhich)
+--	m_logger:line("OnPurgeServers")
 
-	if m_thisApp.PurgeHosts(inWhich) then ShowServers()	end
+	if m_thisApp.PurgeServers(inWhich) then ShowServers() end
 end
 
 -- ----------------------------------------------------------------------------
@@ -631,38 +651,39 @@ end
 --
 local function CreateMainWindow(inApplication)
 --	trace:line("CreateMainWindow")
-	
+
 	m_thisApp  = inApplication
-	
+
 	-- read deafult positions for the dialogs
 	--
 	ReadSettings()
-  
+
 	-- unique IDs for the menu
 	-- 
 	local rcMnuImportFile	= NewMenuID()
 	local rcMnuSaveFile		= NewMenuID()
-	
+
 	local rcMnuToggleBkTsk	= NewMenuID()
 	local rcMnuResetCmpltd	= NewMenuID()
-	
+
 	local rcMnuDisableAll   = NewMenuID()
 	local rcMnuEnableAll	= NewMenuID()
 	local rcMnuToggleEn		= NewMenuID()
 
 	local rcMnuFilter_OK	= NewMenuID()
 	local rcMnuFilter_KO	= NewMenuID()
+	local rcMnuFilter_DEL	= NewMenuID()
 
 	-- ------------------------------------------------------------------------	
 	-- create a window
 	--
 	local tWinProps = m_Mainframe.tWinProps
-	
+
 	local pos  = tWinProps.window_xy
 	local size = tWinProps.window_wh
 
 	local sTitle = m_thisApp.sAppName .. " [" ..	m_thisApp.sAppVersion .. "]"
-	
+
 	local frame = wx.wxFrame(wx.NULL, wx.wxID_ANY, sTitle,
 							 wx.wxPoint(pos[1], pos[2]), wx.wxSize(size[1], size[2]))
 
@@ -676,22 +697,23 @@ local function CreateMainWindow(inApplication)
 	mnuFile:Append(rcMnuImportFile,	"Import Servers\tCtrl-I",	"Read the settings file")
 	mnuFile:Append(rcMnuSaveFile,	"Save Servers\tCtrl-S",		"Write the settings file")
 	mnuFile:Append(wx.wxID_EXIT,    "E&xit\tAlt-X",				"Quit the program")
-	
+
 	local mnuEdit = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
 	mnuEdit:Append(rcMnuDisableAll,	"Disable all rows\tCtrl-D",	"Each DNS entry will be disabled")
 	mnuEdit:Append(rcMnuEnableAll,	"Enable all rows\tCtrl-E",	"Each DNS entry will be anabled")
 	mnuEdit:Append(rcMnuToggleEn,	"Toggle selected rows\tCtrl-T",	"Toggle enable/disable for selection")
-	
+
 	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
 	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-B",	"Start/Stop the backtask")
 	mnuCmds:Append(rcMnuResetCmpltd,"Reset completed\tCtrl-R",	"Reset the completed flag")
-	
+
 	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
-	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-Z",		"Remove non responding hosts")
-	mnuFilt:Append(rcMnuFilter_KO,	"Purge succeeded\tCtrl-X",	"Remove responding hosts")
+	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-X",		"Remove non responding hosts")
+	mnuFilt:Append(rcMnuFilter_KO,	"Purge succeeded\tCtrl-Y",	"Remove responding hosts")
+	mnuFilt:Append(rcMnuFilter_DEL,	"Delete selected\tCtrl-Z",	"Build a new list without selected")
 
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -739,8 +761,9 @@ local function CreateMainWindow(inApplication)
 	frame:Connect(rcMnuToggleBkTsk,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() EnableBacktask(not BacktaskRunning()) end)
 	frame:Connect(rcMnuResetCmpltd,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnResetCompleted)
 	
-	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeHosts(constants.Purge.failed) end)
-	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeHosts(constants.Purge.verified) end)
+	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(constants.Purge.failed) end)
+	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(constants.Purge.verified) end)
+	frame:Connect(rcMnuFilter_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
 
 	frame:Connect(wx.wxID_EXIT,		wx.wxEVT_COMMAND_MENU_SELECTED, CloseMainWindow)
 	frame:Connect(wx.wxID_ABOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, OnAbout)
