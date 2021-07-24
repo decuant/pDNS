@@ -72,6 +72,8 @@ local function PurgeServers(inWhich)
 
 	local tServers	= m_App.tServers
 	local tResult	= { }
+	
+	if not next(tServers) then return false end
 
 	for _, server in next, tServers do
 		
@@ -138,7 +140,7 @@ local function EnableServers(inRowsList, inEnabled)
 	-- if either the rows' list or the servers' list are empty
 	-- then return an empty list
 	--
-	if 0 == #tServers or 0 == #inRowsList then return tReturn end
+	if not next(tServers) or not next(inRowsList) then return tReturn end
 
 	local server
 
@@ -166,7 +168,7 @@ local function DeleteServers(inRowsList)
 	
 	-- check if applicable
 	--
-	if 0 == #tServers or 0 == #inRowsList then return end
+	if not next(tServers) or not next(inRowsList) then return end
 	
 	local tList = { }
 	local y 	= 1
@@ -235,6 +237,7 @@ local function ImportServersFromFile()
 	-- reset old values
 	--
 	m_App.tServers = { }
+	collectgarbage()
 	
 	-- process file
 	--
