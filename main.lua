@@ -4,7 +4,6 @@
 --
 -- ----------------------------------------------------------------------------
 
-local constants	= require("lib.constants")		-- global constants
 local trace		= require("lib.trace")			-- shortcut for tracing
 local mainWin	= require("lib.window")			-- GUI for the application
 local DNSFactory= require("lib.dnsclient")		-- DNS client
@@ -16,6 +15,17 @@ local _cat		= table.concat
 --
 local m_logger = trace.new("debug")
 
+-- ----------------------------------------------------------------------------
+-- options for the Purge filter
+--
+local Purge <const> =
+{
+	failed	 = 0,
+	verified = 1,
+}
+
+_ENV.Purge = Purge							-- make it globally accessible
+	
 -- ----------------------------------------------------------------------------
 --
 local m_App =
@@ -89,7 +99,7 @@ local function PurgeServers(inWhich)
 				if server:IsValid(i) then iExpected = iExpected + (1 << (i - 1)) end
 			end
 			
-			if constants.Purge.verified == inWhich then
+			if Purge.verified == inWhich then
 				
 				-- keep failed
 				--
@@ -156,7 +166,8 @@ local function EnableServers(inRowsList, inEnabled)
 	end
 
 	return tReturn
-end
+end
+
 -- ----------------------------------------------------------------------------
 -- receive a list of rows to delete
 -- note that it's a 1 based list
