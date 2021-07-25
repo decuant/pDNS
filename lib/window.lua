@@ -5,7 +5,6 @@
 -- ----------------------------------------------------------------------------
 
 local wx 		= require("wx")					-- uses wxWidgets for Lua
-local constants	= require("lib.constants")		-- global constants
 local trace		= require("lib.trace")			-- shortcut for tracing
 local palette	= require("lib.wxX11Palette")	-- declarations for colors
 
@@ -16,9 +15,7 @@ local _abs		= math.abs
 
 -- ----------------------------------------------------------------------------
 --
-local m_thisApp			= nil
-local m_iBkTskInterval	= 5
-local m_iBatchLimit		= 10
+local m_thisApp = nil
 
 -- ----------------------------------------------------------------------------
 --
@@ -65,23 +62,30 @@ local m_tDefColours <const> =
 }
 
 -- ----------------------------------------------------------------------------
--- grid's labels
+-- grid's labels anf font
 --
-local m_sGdLbls =
+local m_sGdLbls <const> =
 {
 	"E.", "#1", "#2", "Organization"
 }
 
-local m_tGdFont = {13, "Calibri"}					-- font for the grid and notebook
-
 -- ----------------------------------------------------------------------------
 -- default dialog size and position
 --
-local m_tDefWinProp =
+local m_tDefWinProp <const> =
 {
 	window_xy	= {20,	 20},						-- top, left
 	window_wh	= {750,	265},						-- width, height
 	grid_ruler	= {75, 200, 200, 500},				-- size of each column
+	use_font	= {13, "Calibri"},					-- font for grid and tab
+}
+
+-- ----------------------------------------------------------------------------
+--
+local Task <const> =
+{
+	iBkTskInterval	= 15,							-- timer interval
+	iBatchLimit		= 10,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -94,15 +98,22 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeDark,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemePale,	-- colours for the grid
 
 	hTickTimer		= nil,							-- timer associated with window
 	bReentryLock	= false,						-- avoid re-entrant calling
 	iTaskCounter	= 0,							-- backtask calls counter
 
-	sSettings		= "window.ini",					-- filename for settings
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 }
+
+-- ----------------------------------------------------------------------------
+-- create a filename just for the machine running on
+--
+local function SettingsName()
+	
+	return "window@" .. wx.wxGetHostName() .. ".ini"
+end
 
 -- ----------------------------------------------------------------------------
 -- read dialogs' settings from settings file
@@ -110,14 +121,16 @@ local m_Mainframe =
 local function ReadSettings()
 --	m_logger:line("ReadSettings")
 
-	local fd = io.open(m_Mainframe.sSettings, "r")
+	local sFilename = SettingsName()
+
+	local fd = io.open(sFilename, "r")
 	if not fd then return end
 
 	fd:close()
 
-	local settings = dofile(m_Mainframe.sSettings)
+	local tSettings = dofile(sFilename)
 
-	if settings then m_Mainframe.tWinProps = settings end
+	if tSettings then m_Mainframe.tWinProps = tSettings end
 end
 
 -- ----------------------------------------------------------------------------
@@ -126,7 +139,7 @@ end
 local function SaveSettings()
 --	m_logger:line("SaveSettings")
 
-	local fd = io.open(m_Mainframe.sSettings, "w")
+	local fd = io.open(SettingsName(), "w")
 	if not fd then return end
 
 	fd:write("local window_ini =\n{\n")
@@ -144,6 +157,9 @@ local function SaveSettings()
 					tWinProps.grid_ruler[1], tWinProps.grid_ruler[2],
 					tWinProps.grid_ruler[3], tWinProps.grid_ruler[4])
 	fd:write(sLine)
+	
+	sLine = _frmt("\tuse_font\t= {%d, \"%s\"},\n", tWinProps.use_font[1], tWinProps.use_font[2])
+	fd:write(sLine)	
 
 	fd:write("}\n\nreturn window_ini\n")
 	io.close(fd)
@@ -216,7 +232,7 @@ local function EnableBacktask(inEnable)
 		if not hTick then
 		
 			hTick = wx.wxTimer(m_Mainframe.hWindow, wx.wxID_ANY)
-			hTick:Start(m_iBkTskInterval, false)
+			hTick:Start(Task.iBkTskInterval, false)
 			
 			m_logger:line("Backtask started")
 		end
@@ -424,24 +440,29 @@ local function OnTickTimer()
 
 	local tServers	= m_thisApp.tServers
 	local tColors	= m_Mainframe.tColors
+	local grid		= m_Mainframe.hGridDNSList
+	local tCurrent	= nil
+	local iDnsRes	= 0
 	local iBatch	= 0
 
 	-- check each server
 	--
 	for i =1, #tServers do
-
-		if 1 == tServers[i].iEnabled and not tServers[i]:HasCompletedAll() then
+		
+		tCurrent = tServers[i]
+		
+		if 1 == tCurrent.iEnabled and not tCurrent:HasCompletedAll() then
 			
+			-- cyle it
+			--
+			tCurrent:RunTask()
 			iBatch = iBatch + 1
 			
-			tServers[i]:RunTask()
-		
 			-- update the display
 			--
-			if tServers[i]:HasCompletedAll() then
+			if tCurrent:HasCompletedAll() then
 				
-				local grid = m_Mainframe.hGridDNSList
-				local iDnsRes = tServers[i]:Result()
+				iDnsRes = tCurrent:Result()
 				
 				for y=1, 2 do
 					
@@ -452,7 +473,7 @@ local function OnTickTimer()
 						
 						-- extra check to avoid colouring a cell without address
 						--
-						if tServers[i]:IsValid(y) then
+						if tCurrent:IsValid(y) then
 							
 							grid:SetCellBackgroundColour(i - 1, y, tColors.cFail)
 						end
@@ -460,11 +481,11 @@ local function OnTickTimer()
 				end
 				
 				grid:MakeCellVisible(i - 1, 0)
-				grid:ForceRefresh()					-- seldom there's no colour changing
+				grid:ForceRefresh()						-- seldom there's no colour changing
 			end
 		end
 		
-		if m_iBatchLimit == iBatch then break end	-- check for end of batch
+		if Task.iBatchLimit == iBatch then break end	-- check for end of batch
 	end
 
 	SetStatusCounter(m_Mainframe.iTaskCounter)
@@ -565,6 +586,7 @@ local function OnCloseMainframe()
 	tWinProps.window_xy = {pos:GetX(), pos:GetY()}
 	tWinProps.window_wh = {size:GetWidth(), size:GetHeight()}
 	tWinProps.grid_ruler= tColWidths
+	tWinProps.use_font	= m_Mainframe.tWinProps.use_font				-- just copy over
 
 	m_Mainframe.tWinProps = tWinProps			-- switch structures
 
@@ -583,8 +605,8 @@ local function SetGridStyles(inGrid)
 	local tWinProps = m_Mainframe.tWinProps
 	local tRulers	= tWinProps.grid_ruler
 	local tColors	= m_Mainframe.tColors
-	local iFontSize	= m_tGdFont[1]
-	local sFontname	= m_tGdFont[2]
+	local iFontSize	= tWinProps.use_font[1]
+	local sFontname	= tWinProps.use_font[2]
 	
 	local fntCell = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
 							   wx.wxFONTWEIGHT_LIGHT, false, sFontname, wx.wxFONTENCODING_SYSTEM)
@@ -681,7 +703,10 @@ local function CreateMainWindow(inApplication)
 
 	local pos  = tWinProps.window_xy
 	local size = tWinProps.window_wh
-
+	
+	local iFontSize	= tWinProps.use_font[1]
+	local sFontname	= tWinProps.use_font[2]
+	
 	local sTitle = m_thisApp.sAppName .. " [" ..	m_thisApp.sAppVersion .. "]"
 
 	local frame = wx.wxFrame(wx.NULL, wx.wxID_ANY, sTitle,
@@ -704,16 +729,16 @@ local function CreateMainWindow(inApplication)
 	mnuEdit:Append(rcMnuEnableAll,	"Enable all rows\tCtrl-E",	"Each DNS entry will be anabled")
 	mnuEdit:Append(rcMnuToggleEn,	"Toggle selected rows\tCtrl-T",	"Toggle enable/disable for selection")
 
-	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
-
-	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-B",	"Start/Stop the backtask")
-	mnuCmds:Append(rcMnuResetCmpltd,"Reset completed\tCtrl-R",	"Reset the completed flag")
-
 	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
 	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-X",		"Remove non responding hosts")
 	mnuFilt:Append(rcMnuFilter_KO,	"Purge succeeded\tCtrl-Y",	"Remove responding hosts")
 	mnuFilt:Append(rcMnuFilter_DEL,	"Delete selected\tCtrl-Z",	"Build a new list without selected")
+
+	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
+
+	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-B",	"Start/Stop the backtask")
+	mnuCmds:Append(rcMnuResetCmpltd,"Reset completed\tCtrl-R",	"Reset the completed flag")
 
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -725,8 +750,8 @@ local function CreateMainWindow(inApplication)
 
 	mnuBar:Append(mnuFile,	"&File")
 	mnuBar:Append(mnuEdit,	"&Edit")
-	mnuBar:Append(mnuCmds,	"&Commands")
 	mnuBar:Append(mnuFilt,	"&Filter")
+	mnuBar:Append(mnuCmds,	"&Commands")
 	mnuBar:Append(mnuHelp,	"&Help")
 
 	frame:SetMenuBar(mnuBar)
@@ -736,7 +761,7 @@ local function CreateMainWindow(inApplication)
 	--
 	local stsBar = frame:CreateStatusBar(3, wx.wxST_SIZEGRIP)
 
-	stsBar:SetFont(wx.wxFont(11, wx.wxFONTFAMILY_DEFAULT, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_NORMAL))      
+	stsBar:SetFont(wx.wxFont(iFontSize - 2, wx.wxFONTFAMILY_DEFAULT, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_NORMAL))      
 	stsBar:SetStatusWidths({-1, 75, 50}); 
 
 	stsBar:SetStatusText(m_thisApp.sAppName, 0)  
@@ -758,12 +783,12 @@ local function CreateMainWindow(inApplication)
 	frame:Connect(rcMnuEnableAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() SetEnable(-1, 1) end)
 	frame:Connect(rcMnuToggleEn,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleEnable)
 
+	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(Purge.failed) end)
+	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(Purge.verified) end)
+	frame:Connect(rcMnuFilter_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
+
 	frame:Connect(rcMnuToggleBkTsk,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() EnableBacktask(not BacktaskRunning()) end)
 	frame:Connect(rcMnuResetCmpltd,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnResetCompleted)
-	
-	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(constants.Purge.failed) end)
-	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(constants.Purge.verified) end)
-	frame:Connect(rcMnuFilter_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
 
 	frame:Connect(wx.wxID_EXIT,		wx.wxEVT_COMMAND_MENU_SELECTED, CloseMainWindow)
 	frame:Connect(wx.wxID_ABOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, OnAbout)
@@ -771,8 +796,8 @@ local function CreateMainWindow(inApplication)
 	-- ------------------------------------------------------------------------
 	-- create a notebook style pane and apply styles
 	--
-	local iFontSize	= m_tGdFont[1]
-	local sFontname	= m_tGdFont[2]
+	
+
 
 	local notebook = wx.wxNotebook(frame, wx.wxID_ANY)
 	local fntNote  = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
