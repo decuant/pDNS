@@ -18,7 +18,7 @@ local m_logger = trace.new("debug")
 -- ----------------------------------------------------------------------------
 -- options for the Purge filter
 --
-local Purge <const> =
+local Purge =
 {
 	failed	 = 0,
 	verified = 1,
@@ -230,7 +230,11 @@ local function LoadSampleHosts()
 
 	local _tList = dofile(sConfigFile)
 	
-	if _tList then m_App.tSamples = _tList end
+	if _tList then 
+		
+		m_App.tSamples = _tList
+		collectgarbage()	
+	end
 
 	return #m_App.tSamples
 end
@@ -369,11 +373,13 @@ end
 --
 local function RunApplication()
 --	m_logger:line("RunApplication")
-	
+
+	Purge.failed = -2
+
 	-- open logging and the output file
 	--
 	m_logger:open()
-	
+
 	if SetUpApplication() then ShowGUI() end
 
 	QuitApplication()
