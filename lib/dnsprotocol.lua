@@ -144,7 +144,7 @@ function DnsProtocol.FormatIPQuery(self, inType, inDestUrl)
 	
 	-- frame query address
 	--
-	local tFrame	= { _cat(tHeader) }
+	local tFrame = { _cat(tHeader) }
 	
 	-- split tokens
 	--

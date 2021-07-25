@@ -24,7 +24,7 @@ local m_logger = trace.new("debug")
 -- ----------------------------------------------------------------------------
 -- colors combinations
 --
-local m_tDefColours <const> = 
+local m_tDefColours = 
 {
 	tSchemeDark =
 	{
@@ -64,7 +64,7 @@ local m_tDefColours <const> =
 -- ----------------------------------------------------------------------------
 -- grid's labels anf font
 --
-local m_sGdLbls <const> =
+local m_sGdLbls =
 {
 	"E.", "#1", "#2", "Organization"
 }
@@ -72,7 +72,7 @@ local m_sGdLbls <const> =
 -- ----------------------------------------------------------------------------
 -- default dialog size and position
 --
-local m_tDefWinProp <const> =
+local m_tDefWinProp =
 {
 	window_xy	= {20,	 20},						-- top, left
 	window_wh	= {750,	265},						-- width, height
@@ -82,7 +82,7 @@ local m_tDefWinProp <const> =
 
 -- ----------------------------------------------------------------------------
 --
-local Task <const> =
+local Task =
 {
 	iBkTskInterval	= 15,							-- timer interval
 	iBatchLimit		= 10,							-- max servers per taks

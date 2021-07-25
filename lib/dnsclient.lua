@@ -32,7 +32,6 @@
 -- ----------------------------------------------------------------------------
 --
 local socket	= require("socket.core")		-- luasocket
-local constants	= require("lib.constants")		-- global constants
 local DNSProt	= require("lib.dnsprotocol")	-- protocol winding/unwinding
 local Timers	= require("lib.ticktimer")		-- timers
 local trace		= require("lib.trace")			-- shortcut for tracing
@@ -63,6 +62,17 @@ local function str_ltrim(inString)
 	return inString:gsub("^%s*", "")
 end
 
+-- ----------------------------------------------------------------------------
+-- client for a DNS server
+--
+local CliConsts = 
+{
+	maxSteps	= 5,				-- communication steps
+	maxRetries	= 4, 				-- max retries per step
+	timeout		= 0.5000,			-- step timeout
+	sockDelay	= 0.0001,			-- udp socket timeout
+}
+
 -------------------------------------------------------------------------------
 --
 local Address   = { }
@@ -86,7 +96,7 @@ function Address.new(inAddress)
 	
 	-- disable if empty address
 	--
-	if 0 == #t.sAddress then t.iCurStep = constants.Client.maxSteps end
+	if 0 == #t.sAddress then t.iCurStep = CliConsts.maxSteps end
 	
 	return setmetatable(t, Address)
 end
@@ -103,7 +113,7 @@ end
 --
 function Address.HasCompleted(self)
 	
-	return not (constants.Client.maxSteps > self.iCurStep)
+	return not (CliConsts.maxSteps > self.iCurStep)
 end
 
 -- ----------------------------------------------------------------------------
@@ -256,7 +266,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 	--
 	local iProtStep	= tAddress.iCurStep
 	
-	if iProtStep > constants.Client.maxSteps then
+	if iProtStep > CliConsts.maxSteps then
 		
 		m_trace:showerr("Program error, invalid protocol step", iProtStep)
 		
@@ -272,7 +282,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 	--
 	if not tTickAt:isEnabled() then
 		
-		tTickAt:setup(constants.Client.timeout, true)			-- time out for operation
+		tTickAt:setup(CliConsts.timeout, true)			-- time out for operation
 		tAddress.iRetries = 1
 	else
 		
@@ -290,13 +300,13 @@ function DnsClient.ProcessStatus(self, inIndex)
 
 	-- check if too many retries
 	--
-	if constants.Client.maxRetries <= tAddress.iRetries then
+	if CliConsts.maxRetries <= tAddress.iRetries then
 		
 		m_trace:showerr("Too many retries", sAddress)
 		
 		-- shutdown
 		--
-		iProtStep = constants.Client.maxSteps - 1
+		iProtStep = CliConsts.maxSteps - 1
 	end
 
 	-- --------------------
@@ -308,7 +318,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 		m_trace:line("• Allocating: " .. sAddress)
 		
 		hSocket = assert(_udp())
-		hSocket:settimeout(0.0002)				-- socket.dll won't work without
+		hSocket:settimeout(CliConsts.sockDelay)				-- socket.dll won't work without
 		
 		-- remember status
 		--
@@ -375,7 +385,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 		-- remember status
 		--
 		tAddress.hSocket	= nil
-		tAddress.iCurStep	= constants.Client.maxSteps
+		tAddress.iCurStep	= CliConsts.maxSteps
 		tTickAt:enable(false)						-- disable the tick timer
 		
 		bReturn				= true
