@@ -47,7 +47,7 @@ local m_trace = trace.new("debug")
 
 -- ----------------------------------------------------------------------------
 -- the protocol class is all static, it's not necessary to allocate
--- multiple instances (1 for each address)
+-- multiple instances (1 for each address) 
 --
 local m_Protocol = DNSProt.new()
 
@@ -60,6 +60,29 @@ local function str_ltrim(inString)
 	if not inString then return "" end
 
 	return inString:gsub("^%s*", "")
+end
+
+-- ----------------------------------------------------------------------------
+-- test if the input string is a valid ip4 address
+--
+local function str_testip4(inString)
+	
+	inString = str_ltrim(inString) 
+	if 0 == #inString then return false end
+	
+	local iNumber
+	local iParts = 0
+	
+	for sToken in string.gmatch(inString, "[^.]*") do
+		
+		iNumber = tonumber(sToken) or -1
+		
+		if 0 > iNumber or 256 <= iNumber then return false end
+		
+		iParts = iParts + 1
+	end
+
+	return 4 == iParts
 end
 
 -- ----------------------------------------------------------------------------
@@ -85,6 +108,7 @@ function Address.new(inAddress)
 	local t =
 	{
 		sAddress	= str_ltrim(inAddress),
+		bValid		= true,
 		
 		tTickAt  	= Timers.new(sIPAddr),
 		iRetries 	= 0,
@@ -93,19 +117,22 @@ function Address.new(inAddress)
 		iCurFrameId	= 0,
 		hSocket		= nil,
 	}
-	
-	-- disable if empty address
-	--
-	if 0 == #t.sAddress then t.iCurStep = CliConsts.maxSteps end
-	
+
 	return setmetatable(t, Address)
 end
 
 -- ----------------------------------------------------------------------------
+-- unset the validity flag if no address is given
 --
-function Address.IsValid(self)
+function Address.Validate(self)
 
-	return 0 < #self.sAddress
+	self.bValid	= true
+
+	if not str_testip4(self.sAddress) then
+		
+		self.bValid		= false
+		self.iCurStep	= CliConsts.maxSteps
+	end
 end
 
 -- ----------------------------------------------------------------------------
@@ -121,9 +148,30 @@ end
 --
 function Address.ResetCompleted(self)
 	
-	self.iRetries	 = 0
-	self.iCurStep	 = 1
-	self.iCurFrameId = 0
+	if self.bValid then
+		
+		self.iRetries	 = 0
+		self.iCurStep	 = 1
+		self.iCurFrameId = 0
+	end
+end
+
+-- ----------------------------------------------------------------------------
+-- modify the address
+--
+function Address.ChangeAddress(self, inAddress)
+	
+	inAddress = str_ltrim(inAddress)
+	
+	if self.sAddress ~= inAddress then
+		
+		self.sAddress = inAddress
+		
+		self:Validate()
+		self:ResetCompleted()
+	end
+	
+	return self.bValid
 end
 
 -------------------------------------------------------------------------------
@@ -154,18 +202,18 @@ end
 -- ----------------------------------------------------------------------------
 --
 function DnsClient.ToString(self)
-	
+
 	local sOutput = { }
-	
+
 	sOutput[#sOutput + 1] = _frmt("%d", self.iEnabled)
-	
+
 	for i=1, #self.tAddresses do
 		
 		sOutput[#sOutput + 1] = _frmt("\"% 15s\"", self.tAddresses[i].sAddress)
 	end
-	
+
 	sOutput[#sOutput + 1] = _frmt("\"%s\"", self.sReference)
-	
+
 	return _cat(sOutput, ", ")
 end
 
@@ -174,31 +222,33 @@ end
 function DnsClient.AddAddress(self, inAddress)
 
 	if not inAddress then return end
-	
-	self.tAddresses[#self.tAddresses + 1] = Address.new(inAddress)
+
+	local newAddr = Address.new(inAddress)
+
+	self.tAddresses[#self.tAddresses + 1] = newAddr
+
+	newAddr:Validate()
 end
 
 -- ----------------------------------------------------------------------------
 -- check for valid address
 --
 function DnsClient.IsValid(self, inIndex)
-	
+
 	local tAddress = self.tAddresses[inIndex]
-	
-	if tAddress then return tAddress:IsValid() end
-	
-	return false
+
+	return tAddress and tAddress.bValid
 end
 
 -- ----------------------------------------------------------------------------
 -- check if we're done with stepping
 --
 function DnsClient.HasCompleted(self, inIndex)
-	
+
 	local tAddress = self.tAddresses[inIndex]
-	
-	if tAddress and tAddress:IsValid() then return tAddress:HasCompleted() end
-	
+
+	if tAddress then return tAddress:HasCompleted() end
+
 	return true
 end
 
@@ -211,7 +261,7 @@ function DnsClient.Restart(self)
 		
 		self.tAddresses[i]:ResetCompleted()
 	end
-	
+
 	self.iDnsResult = 0
 end
 
@@ -219,14 +269,14 @@ end
 -- check if we're done with stepping
 --
 function DnsClient.HasCompletedAll(self)
-	
+
 	local bReturn = true
-	
+
 	for i=1, #self.tAddresses do
 		
 		bReturn = bReturn and self:HasCompleted(i)
 	end
-	
+
 	return bReturn
 end
 
@@ -234,7 +284,7 @@ end
 -- get the return value after query and answer
 --
 function DnsClient.Result(self)
-	
+
 	return self.iDnsResult
 end
 
@@ -242,7 +292,7 @@ end
 -- get the return value after query and answer
 --
 function DnsClient.SetQuestion(self, inType, inHost)
-	
+
 	self.iQueryType	= inType or 1				-- type of query for dns server
 	self.sQueryHost	= inHost or ""				-- host to resolve
 end
@@ -254,25 +304,25 @@ function DnsClient.ProcessStatus(self, inIndex)
 --	m_trace:line("ProcessStatus")
 
 	local tAddress	= self.tAddresses[inIndex]
-	
+
 	if not tAddress then 
 		
 		m_trace:showerr("Program error, invalid index", inIndex)
 		
 		return false
 	end
-	
+
 	-- check valid protocol step
 	--
 	local iProtStep	= tAddress.iCurStep
-	
+
 	if iProtStep > CliConsts.maxSteps then
 		
 		m_trace:showerr("Program error, invalid protocol step", iProtStep)
 		
 		return false
 	end
-	
+
 	local sAddress	= tAddress.sAddress
 	local hSocket	= tAddress.hSocket
 	local tTickAt	= tAddress.tTickAt
@@ -401,25 +451,25 @@ function DnsClient.RunTask(self)
 --	m_trace:line("RunTask")
 
 	if 0 == self.iEnabled then return end
-	
+
 	-- fail check (nothing to do)
 	--
 	if not next(self.tAddresses) then return end
-	
+
 	m_trace:summary("Server: " .. self.sReference)	
-	
+
 	-- for each defined address
 	--
 	for iIndex=1, #self.tAddresses do
 		
-		if self:IsValid(iIndex) and not self:HasCompleted(iIndex) then
+		if not self:HasCompleted(iIndex) then
 			
 			-- advance stepping
 			--
 			self:ProcessStatus(iIndex)
 		end
 	end
-	
+
 	m_trace:endsummary()
 end
 

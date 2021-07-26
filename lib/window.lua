@@ -517,17 +517,18 @@ local function OnCellChanged(event)
 		
 		hGrid:SetCellValue(iRow, iCol, tostring(iValue))
 		
-	elseif 1 == iCol then
-		
-		tRow.tAddresses[1].sAddress = aValue
-		
-	elseif 2 == iCol then
-		
-		tRow.tAddresses[2].sAddress = aValue
-		
 	elseif 3 == iCol then
 		
 		tRow.sReference = aValue
+	else
+		
+		-- check for a valid ip4 address
+		--
+		if not tRow.tAddresses[iCol]:ChangeAddress(aValue) then
+			
+			tRow.tAddresses[iCol]:ChangeAddress("")
+			hGrid:SetCellValue(iRow, iCol, "")
+		end
 	end
 end
 
