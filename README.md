@@ -23,13 +23,19 @@ A list of country codes, divided by continent, can be used to filter out rows of
 
 ### .2 **main.lua**
 
+After loading a test file.
+
 ![Main dialog inactive](/docs/Main_Dialog1.png)
 
+After testing some servers.
+
+![Main dialog active](/docs/Main_Dialog2.png)
 
 ## List of changes
 
 ### Rel. 0.0.4
 
+- Test for valid IP4 address.
 - Modified the window's ini file to support control over the font to use.
 - Added deletion of selected servers.
 - Added possibility to purge from the servers' list either the verified or the failing ones.
