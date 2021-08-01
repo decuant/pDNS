@@ -92,7 +92,7 @@ local CliConsts =
 {
 	maxSteps	= 5,				-- communication steps
 	maxRetries	= 4, 				-- max retries per step
-	timeout		= 0.5000,			-- step timeout
+	timeout		= 0.0500,			-- step timeout
 	sockDelay	= 0.0001,			-- udp socket timeout
 }
 
@@ -190,6 +190,8 @@ function DnsClient.new(inEnabled, inLabel)
 		sReference	= inLabel or "",			-- reference name
 		
 		tAddresses	= { },						-- associated addresses
+		
+		iDnsExpected= 0,
 		iDnsResult	= 0,						-- 0/1/2/3 result of query
 		
 		iQueryType	= 1,						-- type of query for dns server
@@ -228,6 +230,25 @@ function DnsClient.AddAddress(self, inAddress)
 	self.tAddresses[#self.tAddresses + 1] = newAddr
 
 	newAddr:Validate()
+	
+	self:UpdateResponse()
+end
+
+-- ----------------------------------------------------------------------------
+-- update the expected response
+--
+function DnsClient.UpdateResponse(self)
+
+	local iExpected = 0
+	
+	-- sum up the expected result
+	--
+	for i=1, #self.tAddresses do
+		
+		if self:IsValid(i) then iExpected = iExpected + (1 << (i - 1)) end
+	end
+
+	self.iDnsExpected = iExpected
 end
 
 -- ----------------------------------------------------------------------------
@@ -283,9 +304,19 @@ end
 -- ----------------------------------------------------------------------------
 -- get the return value after query and answer
 --
-function DnsClient.Result(self)
+function DnsClient.ClientStatus(self)
 
-	return self.iDnsResult
+	return self.iDnsResult, self.iDnsExpected
+end
+
+-- ----------------------------------------------------------------------------
+-- get the return value after query and answer
+--
+function DnsClient.IsResponseOK(self, inIndex)
+
+	if 0 > inIndex or 8 < inIndex then return false end
+
+	return (0 < ((self.iDnsResult >> (inIndex - 1)) & 0x01))
 end
 
 -- ----------------------------------------------------------------------------
@@ -413,7 +444,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 			m_trace:showerr( "No data received", sAddress)
 		else
 			
-			m_trace:dump("Reply", sCurFrame)
+			-- m_trace:dump("Reply", sCurFrame)
 			
 			if m_Protocol:ParseMessage(sCurFrame, tAddress.iCurFrameId) then
 				

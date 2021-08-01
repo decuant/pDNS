@@ -9,6 +9,7 @@ local trace		= require("lib.trace")			-- shortcut for tracing
 local palette	= require("lib.wxX11Palette")	-- declarations for colors
 
 local _frmt		= string.format
+local _sub		= string.sub
 local _min		= math.min
 local _max		= math.max
 local _abs		= math.abs
@@ -82,10 +83,10 @@ local m_tDefWinProp =
 
 -- ----------------------------------------------------------------------------
 --
-local Task =
+local TaskOptions =
 {
-	iBkTskInterval	= 15,							-- timer interval
-	iBatchLimit		= 10,							-- max servers per taks
+	iTaskInterval	= 25,							-- timer interval
+	iBatchLimit		= 5,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -99,12 +100,11 @@ local m_Mainframe =
 
 	hGridDNSList	= nil,							-- grid
 	tColors			= m_tDefColours.tSchemePale,	-- colours for the grid
+	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
 	bReentryLock	= false,						-- avoid re-entrant calling
 	iTaskCounter	= 0,							-- backtask calls counter
-
-	tWinProps		= m_tDefWinProp,				-- window layout settings
 }
 
 -- ----------------------------------------------------------------------------
@@ -195,12 +195,14 @@ end
 
 -- ----------------------------------------------------------------------------
 --
---local function SetStatusText(inText)
+local function SetStatusText(inText)
 	
---	local hBar = m_Mainframe.hStatusBar
+	local hBar = m_Mainframe.hStatusBar
 	
---	hBar:SetStatusText(inText, 0)
---end
+	hBar:SetStatusText(inText, 0)
+	
+	m_logger:line(inText)	
+end
 
 -- ----------------------------------------------------------------------------
 --
@@ -208,7 +210,22 @@ local function SetStatusCounter(inValue)
 	
 	local hBar = m_Mainframe.hStatusBar
 	
-	hBar:SetStatusText(tostring(inValue), 1)
+	hBar:SetStatusText(tostring(inValue), 4)
+end
+
+-- ----------------------------------------------------------------------------
+--
+local m_Symbols = "|/-\\|/-\\"
+local m_SymbInd = 0
+
+local function UpdateProgress()
+	
+	local hBar = m_Mainframe.hStatusBar
+	
+	m_SymbInd = m_SymbInd + 1
+	if  #m_Symbols < m_SymbInd then m_SymbInd = 1 end
+	
+	hBar:SetStatusText(string.sub(m_Symbols, m_SymbInd, m_SymbInd), 3)
 end
 
 -- ----------------------------------------------------------------------------
@@ -232,9 +249,9 @@ local function EnableBacktask(inEnable)
 		if not hTick then
 		
 			hTick = wx.wxTimer(m_Mainframe.hWindow, wx.wxID_ANY)
-			hTick:Start(Task.iBkTskInterval, false)
+			hTick:Start(TaskOptions.iTaskInterval, false)
 			
-			m_logger:line("Backtask started")
+			SetStatusText("Backtask started")
 		end
 	else
 		
@@ -243,7 +260,7 @@ local function EnableBacktask(inEnable)
 			hTick:Stop()
 			hTick = nil
 			
-			m_logger:line("Backtask stopped")			
+			SetStatusText("Backtask stopped")
 		end
 	end
 	
@@ -260,11 +277,11 @@ local function ShowServers()
 	
 	-- remove all rows
 	--
-	local grid = m_Mainframe.hGridDNSList
+	local hGrid = m_Mainframe.hGridDNSList
 	
-	if 0 < grid:GetNumberRows() then
+	if 0 < hGrid:GetNumberRows() then
 		
-		grid:DeleteRows(0, grid:GetNumberRows())
+		hGrid:DeleteRows(0, hGrid:GetNumberRows())
 	end
 
 	-- --------------------------------
@@ -272,7 +289,7 @@ local function ShowServers()
 	--
 	local tDNS = m_thisApp.tServers			-- here we are sure the table is not empty
 	
-	grid:AppendRows(#tDNS, false)			-- create empty rows
+	hGrid:AppendRows(#tDNS, false)			-- create empty rows
 	
 	local tCurrent
 
@@ -280,10 +297,43 @@ local function ShowServers()
 		
 		tCurrent = tDNS[iRow + 1]
 		
-		grid:SetCellValue(iRow, 0, tostring(tCurrent.iEnabled))		-- active state
-		grid:SetCellValue(iRow, 1, tCurrent.tAddresses[1].sAddress)	-- ip address
-		grid:SetCellValue(iRow, 2, tCurrent.tAddresses[2].sAddress)	-- ip address
-		grid:SetCellValue(iRow, 3, tCurrent.sReference)				-- url or name
+		hGrid:SetCellValue(iRow, 0, tostring(tCurrent.iEnabled))		-- active state
+		hGrid:SetCellValue(iRow, 1, tCurrent.tAddresses[1].sAddress)	-- ip address
+		hGrid:SetCellValue(iRow, 2, tCurrent.tAddresses[2].sAddress)	-- ip address
+		hGrid:SetCellValue(iRow, 3, tCurrent.sReference)				-- url or name
+	end
+end
+
+-- ----------------------------------------------------------------------------
+-- update the display
+--
+local function UpdateDisplay()
+	m_logger:line("UpdateDisplay")
+
+	local tDNS	  = m_thisApp.tServers			-- here we are sure the table is not empty
+	local hGrid	  = m_Mainframe.hGridDNSList
+	local tColors = m_Mainframe.tColors
+	
+	for i, tCurrent in next, tDNS do
+		
+		if tCurrent:HasCompletedAll() then
+			
+			for y=1, 2 do
+				
+				if tCurrent:IsResponseOK(y) then
+				
+					hGrid:SetCellBackgroundColour(i - 1, y, tColors.cSucc)
+				else
+					
+					-- extra check to avoid colouring a cell without address
+					--
+					if tCurrent:IsValid(y) then
+						
+						hGrid:SetCellBackgroundColour(i - 1, y, tColors.cFail)
+					end
+				end
+			end
+		end
 	end
 end
 
@@ -389,6 +439,7 @@ local function OnDeleteSelected()
 	-- refresh view
 	--
 	ShowServers()
+	UpdateDisplay()
 end
 
 -- ----------------------------------------------------------------------------
@@ -411,6 +462,7 @@ local function OnResetCompleted()
 		grid:SetCellBackgroundColour(i - 1, 2, tColors.cColBk2)
 	end
 	
+	UpdateDisplay()
 	grid:ForceRefresh()					-- seldom there's no colour changing
 end
 
@@ -420,7 +472,11 @@ end
 local function OnPurgeServers(inWhich)
 --	m_logger:line("OnPurgeServers")
 
-	if m_thisApp.PurgeServers(inWhich) then ShowServers() end
+	if m_thisApp.PurgeServers(inWhich) then
+		
+		ShowServers()
+		UpdateDisplay()
+	end
 end
 
 -- ----------------------------------------------------------------------------
@@ -436,59 +492,22 @@ local function OnTickTimer()
 	
 --	m_logger:line("OnTickTimer")
 	
-	m_Mainframe.iTaskCounter = m_Mainframe.iTaskCounter + 1
-
-	local tServers	= m_thisApp.tServers
-	local tColors	= m_Mainframe.tColors
-	local grid		= m_Mainframe.hGridDNSList
-	local tCurrent	= nil
-	local iDnsRes	= 0
-	local iBatch	= 0
-
-	-- check each server
-	--
-	for i =1, #tServers do
+--	m_Mainframe.iTaskCounter = m_Mainframe.iTaskCounter + 1
+	
+	local iLast = m_thisApp.RunBatch(TaskOptions.iBatchLimit)
+	
+	if 0 < iLast then 
 		
-		tCurrent = tServers[i]
+		UpdateDisplay()
 		
-		if 1 == tCurrent.iEnabled and not tCurrent:HasCompletedAll() then
-			
-			-- cyle it
-			--
-			tCurrent:RunTask()
-			iBatch = iBatch + 1
-			
-			-- update the display
-			--
-			if tCurrent:HasCompletedAll() then
-				
-				iDnsRes = tCurrent:Result()
-				
-				for y=1, 2 do
-					
-					if 0 < ((iDnsRes >> (y - 1)) & 0x01) then
-					
-						grid:SetCellBackgroundColour(i - 1, y, tColors.cSucc)
-					else
-						
-						-- extra check to avoid colouring a cell without address
-						--
-						if tCurrent:IsValid(y) then
-							
-							grid:SetCellBackgroundColour(i - 1, y, tColors.cFail)
-						end
-					end
-				end
-				
-				grid:MakeCellVisible(i - 1, 0)
-				grid:ForceRefresh()						-- seldom there's no colour changing
-			end
-		end
+		local hGrid = m_Mainframe.hGridDNSList
 		
-		if Task.iBatchLimit == iBatch then break end	-- check for end of batch
+		hGrid:MakeCellVisible(iLast - 1, 0)
+		hGrid:ForceRefresh()						-- seldom there's no colour changing
 	end
 
-	SetStatusCounter(m_Mainframe.iTaskCounter)
+--	SetStatusCounter(m_Mainframe.iTaskCounter)
+	UpdateProgress()
 
 	m_Mainframe.bReentryLock = false
 end
@@ -524,9 +543,11 @@ local function OnCellChanged(event)
 		
 		-- check for a valid ip4 address
 		--
-		if not tRow.tAddresses[iCol]:ChangeAddress(aValue) then
+		local tAddress = tRow.tAddresses[iCol]
+		
+		if not tAddress:ChangeAddress(aValue) then
 			
-			tRow.tAddresses[iCol]:ChangeAddress("")
+			tAddress:ChangeAddress("")
 			hGrid:SetCellValue(iRow, iCol, "")
 		end
 	end
@@ -537,6 +558,8 @@ end
 --
 local function OnSize()
 --	m_logger:line("OnSize")
+
+	if not m_Mainframe.hWindow then return end
 
 	local sizeClient = m_Mainframe.hWindow:GetClientSize()
 	local sizeBar 	 = m_Mainframe.hStatusBar:GetSize()
@@ -760,10 +783,10 @@ local function CreateMainWindow(inApplication)
 	-- ------------------------------------------------------------------------
 	-- create the bottom status bar
 	--
-	local stsBar = frame:CreateStatusBar(3, wx.wxST_SIZEGRIP)
+	local stsBar = frame:CreateStatusBar(5, wx.wxST_SIZEGRIP)
 
 	stsBar:SetFont(wx.wxFont(iFontSize - 2, wx.wxFONTFAMILY_DEFAULT, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_NORMAL))      
-	stsBar:SetStatusWidths({-1, 75, 50}); 
+	stsBar:SetStatusWidths({-1, 75, 50, 50, 50}); 
 
 	stsBar:SetStatusText(m_thisApp.sAppName, 0)  
 	frame:SetStatusBarPane(0)                   	-- this is reserved for the menu
@@ -797,23 +820,19 @@ local function CreateMainWindow(inApplication)
 	-- ------------------------------------------------------------------------
 	-- create a notebook style pane and apply styles
 	--
-	
-
-
 	local notebook = wx.wxNotebook(frame, wx.wxID_ANY)
 	local fntNote  = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
 							    wx.wxFONTWEIGHT_BOLD, false, sFontname, wx.wxFONTENCODING_SYSTEM)
 
 	notebook:SetBackgroundColour(palette.Gray20)
 	notebook:SetFont(fntNote)
-
-	local gridDNS = wx.wxGrid(notebook, wx.wxID_ANY, wx.wxDefaultPosition, notebook:GetSize())	
-
-	notebook:AddPage(gridDNS, "DNS Servers", true, 0)
+	
+	local newGrid = wx.wxGrid(notebook, wx.wxID_ANY, wx.wxDefaultPosition, notebook:GetSize()) 
+	notebook:AddPage(newGrid, "Servers List", true, 0)
+	SetGridStyles(newGrid)
+	
 --	notebook:AddPage(gridDNS, "Experiment", false, 0)
 	
-	SetGridStyles(gridDNS)											-- apply styles to grids
-
 	frame:Connect(wx.wxEVT_GRID_CELL_CHANGED, OnCellChanged)		-- connect the event to a handler
 
 	-- assign an icon
@@ -826,7 +845,7 @@ local function CreateMainWindow(inApplication)
 	m_Mainframe.hWindow		= frame
 	m_Mainframe.hStatusBar	= stsBar	
 	m_Mainframe.hNotebook	= notebook
-	m_Mainframe.hGridDNSList= gridDNS
+	m_Mainframe.hGridDNSList= newGrid
 end
 
 -- ----------------------------------------------------------------------------
