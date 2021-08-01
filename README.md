@@ -5,7 +5,7 @@
 A list of DNS servers is presented to the user. For each server an enable/disable flag controls if processing is due.
 Upon running the main backtask, each (enabled) server will be questioned about a URL. Response is in the log file.
 
-The application currently uses ```Lua 5.4.2```, ```wxWidgets 3.1.4```, ```wxLua 3.1.0.0``` and ```luasocket 3.0-rc1```.
+The application currently uses ```Lua 5.4.3```, ```wxWidgets 3.1.5```, ```wxLua 3.1.0.0``` and ```luasocket 3.0-rc1```.
 
 ## Modules
 
@@ -35,6 +35,8 @@ After testing some servers.
 
 ### Rel. 0.0.4
 
+- Scramble servers' list.
+- Minimized grid resfresh calls.
 - Test for valid IP4 address.
 - Modified the window's ini file to support control over the font to use.
 - Added deletion of selected servers.
