@@ -7,13 +7,16 @@
 local trace		= require("lib.trace")			-- shortcut for tracing
 local mainWin	= require("lib.window")			-- GUI for the application
 local DNSFactory= require("lib.dnsclient")		-- DNS client
+local random	= require("lib.random")
 
 local _frmt		= string.format
 local _cat		= table.concat
+local _floor	= math.floor
 
 -- ----------------------------------------------------------------------------
 --
-local m_logger = trace.new("debug")
+local m_logger	= trace.new("debug")
+local m_random  = random.new()
 
 -- ----------------------------------------------------------------------------
 -- options for the Purge filter
@@ -30,23 +33,25 @@ _ENV.Purge = Purge							-- make it globally accessible
 --
 local m_App =
 {
-	sAppVersion		= "0.0.4",				-- application's version
-	sAppName		= "Polling DNS",		-- name for the application
-	sRelDate 		= "2021/07/23",
+	sAppVersion	= "0.0.5",				-- application's version
+	sAppName	= "Polling DNS",		-- name for the application
+	sRelDate 	= "2021/08/01",
 
-	tServers		= { },					-- list of DNS servers
+	tServers	= { },					-- list of DNS servers
 	
-	iCurHost		= 0,					-- index for the next host
-	tSamples		= { },					-- list of sample hosts
+	iCurHost	= 0,					-- index for the next host
+	tSamples	= { },					-- list of sample hosts
 }
 
 -- ----------------------------------------------------------------------------
 --
 local m_Config =
 {
-	sConfigFile		= "data/servers.lua",
-	sHostsFile		= "data/samplehosts.lua",
+	sConfigFile	= "data/servers.lua",
+	sHostsFile	= "data/samplehosts.lua",
 }
+
+--_ENV.FileList = m_Config						-- make it globally accessible
 
 -- ----------------------------------------------------------------------------
 -- get a name from the list in samplehosts.lua
@@ -67,10 +72,62 @@ end
 --
 
 -- ----------------------------------------------------------------------------
+-- swap elements around in the servers' list
 --
+local function OnScramble()
+	m_logger:line("OnScramble")
+	
+	local tServers	= m_App.tServers
+	local iMax		= _floor(#tServers / 2)
+	local iUpper	= #tServers
+	local ilower	= iMax + 1
+	
+	local tTemp
+	local iSwap
+	
+	for i=1, iMax do
+		
+		iSwap = _floor(m_random:getBoxed(ilower, iUpper))
+		
+		tTemp 			= tServers[i]
+		tServers[i]		= tServers[iSwap]
+		tServers[iSwap] = tTemp
+	end
+end
 
 -- ----------------------------------------------------------------------------
+-- run a task for each server in list
 --
+local function OnRunBatch(inLimit)
+--	m_logger:line("OnRunBatch")
+
+	local tServers	= m_App.tServers
+	local iBatch	= 0
+	local iLastIndex= 0
+
+	-- check each server
+	--
+	for i, tCurrent in next, tServers do
+		
+		if 1 == tCurrent.iEnabled and not tCurrent:HasCompletedAll() then
+			
+			-- cyle it
+			--
+			tCurrent:RunTask()
+			iBatch = iBatch + 1
+			
+			-- status changed
+			--
+			if tCurrent:HasCompletedAll() then iLastIndex = i end
+		end
+		
+		-- check for end of batch
+		--
+		if inLimit == iBatch then break end
+	end
+	
+	return iLastIndex
+end
 
 -- ----------------------------------------------------------------------------
 -- remove servers from the main table depending on the criteria
@@ -89,21 +146,13 @@ local function PurgeServers(inWhich)
 		
 		if 1 == server.iEnabled and server:HasCompletedAll() then
 			
-			local iDnsRes 	= server:Result()
-			local iExpected = 0
-			
-			-- sum up the expected result
-			--
-			for i=1, #server.tAddresses do
-				
-				if server:IsValid(i) then iExpected = iExpected + (1 << (i - 1)) end
-			end
+			local iResult, iExpected = server:ClientStatus()
 			
 			if Purge.verified == inWhich then
 				
 				-- keep failed
 				--
-				if iExpected ~= iDnsRes then
+				if iResult ~= iExpected then
 					
 					tResult[#tResult + 1] = server
 				end
@@ -111,7 +160,7 @@ local function PurgeServers(inWhich)
 				
 				-- keep responding
 				--
-				if iExpected == iDnsRes then
+				if iResult == iExpected then
 					
 					tResult[#tResult + 1] = server
 				end
@@ -287,6 +336,8 @@ local function ImportServersFromFile()
 		m_App.tServers = tServers
 	end
 	
+	OnScramble()
+	
 	return #m_App.tServers
 end
 
@@ -331,8 +382,6 @@ end
 local function SetUpApplication()
 --	m_logger:line("SetUpApplication")
 	
-	math.randomseed(os.time())
-	
 	m_logger:time(m_App.sAppName .. " [Rel. " .. m_App.sAppVersion .. "]")	
 	
 	assert(os.setlocale('ita', 'all'))
@@ -341,6 +390,8 @@ local function SetUpApplication()
 	-- load hosts from sample file
 	--
 	LoadSampleHosts()
+	
+	m_random:initialize()
 	
 	return true
 end
@@ -357,24 +408,11 @@ local function ShowGUI()
 end
 
 -- ----------------------------------------------------------------------------
--- leave clean
---
-local function QuitApplication()
---	m_logger:line("QuitApplication")
-	
---	CloseMainWindow()
-	
-	m_logger:line(m_App.sAppName .. " terminated")
-end
-
--- ----------------------------------------------------------------------------
 -- basically if we have some command in the commands' list because of an
 -- override then communicate with the scanner and exit
 --
 local function RunApplication()
 --	m_logger:line("RunApplication")
-
-	Purge.failed = -2
 
 	-- open logging and the output file
 	--
@@ -382,7 +420,7 @@ local function RunApplication()
 
 	if SetUpApplication() then ShowGUI() end
 
-	QuitApplication()
+	m_logger:line(m_App.sAppName .. " terminated")
 
 	m_logger:close()
 end
@@ -396,6 +434,7 @@ local function SetupPublic()
 	m_App.EnableServers	= EnableServers
 	m_App.PurgeServers	= PurgeServers
 	m_App.DeleteServers	= DeleteServers
+	m_App.RunBatch		= OnRunBatch
 end
 
 -- ----------------------------------------------------------------------------

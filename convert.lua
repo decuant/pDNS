@@ -136,8 +136,8 @@ local m_tF_Antarctica =
 --
 local m_Config =
 {
-	sFileInput		= "data/nameservers.csv",
-	sFileOutput		= "data/nameservers.lua",
+	sFileInput		= "data/nameservers-all.csv",
+	sFileOutput		= "data/nameservers-all.lua",
 	
 	tFilters		= nil, -- m_tF_Europe,
 }
