@@ -1,6 +1,6 @@
 #  **pDNS**
 
-## Polling DNS - rel. 0.0.4 (2021/07/23)
+## Polling DNS - rel. 0.0.5 (2021/08/01)
 
 A list of DNS servers is presented to the user. For each server an enable/disable flag controls if processing is due.
 Upon running the main backtask, each (enabled) server will be questioned about a URL. Response is in the log file.
@@ -33,10 +33,13 @@ After testing some servers.
 
 ## List of changes
 
-### Rel. 0.0.4
+### Rel. 0.0.5
 
 - Scramble servers' list.
 - Minimized grid resfresh calls.
+
+### Rel. 0.0.4
+
 - Test for valid IP4 address.
 - Modified the window's ini file to support control over the font to use.
 - Added deletion of selected servers.
