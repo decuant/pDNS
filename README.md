@@ -5,7 +5,10 @@
 A list of DNS servers is presented to the user. For each server an enable/disable flag controls if processing is due.
 Upon running the main backtask, each (enabled) server will be questioned about a URL. Response is in the log file.
 
-The application currently uses ```Lua 5.4.3```, ```wxWidgets 3.1.5```, ```wxLua 3.1.0.0``` and ```luasocket 3.0-rc1```.
+The application runs with ```Lua 5.4.3```, ```wxWidgets 3.1.5```, ```wxLua 3.1.0.0``` and ```luasocket 3.0-rc1```.
+
+Log files use some UTF8 characters.
+
 
 ## Modules
 
@@ -33,8 +36,7 @@ After testing some servers.
 
 This program is not intended for speed benchmarcking, but rather to question servers.
 
-Eventually, load all names servers and enable each in list, then enable the backtask and cycle 3 or 4 times the sequence:
-``purge the failing servers and reset the completion status`` will give you a list of trustful servers.
+To make a useful list, load all names servers and enable each in list, then enable the backtask and cycle 3 or 4 times the sequence: purge the failing servers and reset the completion status.
 
 File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
 
@@ -48,6 +50,8 @@ When purging servers, a server with 2 addresses, of which 1 is not responding, w
 
 
 ## Response
+
+This is a typical response.
 
 ```
 
@@ -91,6 +95,24 @@ When purging servers, a server with 2 addresses, of which 1 is not responding, w
 05847: Record lenght               = 4
 05848: Assigned Ip address         = 104.26.2.14
 05849: 
+```
+
+Some replies might have more information.
+
+```
+02371: Questions count             = 1
+02372: Answers count               = 4
+02373: Authoritative servers count = 4
+02374: Additional records count    = 4
+02375: URL requested               = time.com
+```
+
+The server replied at the specified ip address, but the reply is a DNS error code.
+
+```
+01930: ℹ Return code failure: The specified name does not exist in the domain
+01943: ℹ Return code failure: The server has failed internally
+02543: ℹ Return code failure: For policy the server refused to answer
 ```
 
 
