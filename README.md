@@ -40,11 +40,58 @@ File ``user.lua`` is a container for plugin functions, it can be modified and re
 
 File ``data/samplehosts.lua`` holds a table of sample hosts that are assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list.
 
-For the time being DNS servers are questioned only with a TYPE 1 <<hostname>>. Response and analisys of the response are recorded in the log ``log/protocol.log``.
+For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
 
 The status bar shows counters for: Total Servers, Enabled Servers, Responding Addresses, Not Responding Addresses.
 
 When purging servers, a server with 2 addresses, of which 1 is not responding, will be removed, either way.
+
+
+## Response
+
+...
+
+05815: ----- [ Response 2983 ] -----
+00000000  0B A7 81 80 00 01 00 03 00 00 00 00 0A 73 61 74  .?.?.........sat
+00000010  65 6C 6C 69 74 65 73 03 70 72 6F 00 00 01 00 01  ellites.pro.....
+00000020  C0 0C 00 01 00 01 00 00 01 2C 00 04 68 1A 03 0E  ?........,..h...
+00000030  C0 0C 00 01 00 01 00 00 01 2C 00 04 AC 43 44 B4  ?........,..?CD?
+00000040  C0 0C 00 01 00 01 00 00 01 2C 00 04 68 1A 02 0E  ?........,..h...
+05816: Recursion desired           = 1
+05817: Truncation flag             = 0
+05818: Authoritative answer flag   = 0
+05819: Opcode                      = 0
+05820: Query/Response flag         = 1
+05821: Return code                 = 0
+05822: Recursion available         = 1
+05823: Questions count             = 1
+05824: Answers count               = 3
+05825: Authoritative servers count = 0
+05826: Additional records count    = 0
+05827: URL requested               = satellites.pro
+05828: Type of query    (req)      = 1
+05829: Class (protocol) (req)      = 1
+05830: 
+05831: Pointer value               = 0x0c
+05832: Type of query    (ans)      = 1
+05833: Class (protocol) (ans)      = 1
+05834: Time to live                = 300
+05835: Record lenght               = 4
+05836: Assigned Ip address         = 104.26.3.14
+05837: Pointer value               = 0x0c
+05838: Type of query    (ans)      = 1
+05839: Class (protocol) (ans)      = 1
+05840: Time to live                = 300
+05841: Record lenght               = 4
+05842: Assigned Ip address         = 172.67.68.180
+05843: Pointer value               = 0x0c
+05844: Type of query    (ans)      = 1
+05845: Class (protocol) (ans)      = 1
+05846: Time to live                = 300
+05847: Record lenght               = 4
+05848: Assigned Ip address         = 104.26.2.14
+05849: 
+...
 
 
 ## List of changes
