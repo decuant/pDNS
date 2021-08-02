@@ -115,6 +115,39 @@ The server replied at the specified ip address, but the reply is a DNS error cod
 02543: ℹ Return code failure: For policy the server refused to answer
 ```
 
+This is a not typical answer.
+
+```
+00895: ----- [ Response 2820 ] -----
+00000000  0B 04 85 00 00 01 00 01 00 01 00 00 09 70 63 73  ..?..........pcs
+00000010  75 70 70 6F 72 74 06 6C 65 6E 6F 76 6F 03 63 6F  upport.lenovo.co
+00000020  6D 00 00 01 00 01 C0 0C 00 01 00 01 00 00 00 78  m.....?........x
+00000030  00 04 7F 00 00 01 00 00 02 00 01 00 00 00 78 00  ..............x.
+00000040  0B 09 6C 6F 63 61 6C 68 6F 73 74 00              ..localhost.
+00896: Recursion desired           = 1
+00897: Truncation flag             = 0
+00898: Authoritative answer flag   = 1
+00899: Opcode                      = 0
+00900: Query/Response flag         = 1
+00901: Return code                 = 0
+00902: Recursion available         = 0
+00903: Questions count             = 1
+00904: Answers count               = 1
+00905: Authoritative servers count = 1
+00906: Additional records count    = 0
+00907: URL requested               = pcsupport.lenovo.com
+00908: Type of query    (req)      = 1
+00909: Class (protocol) (req)      = 1
+00910: 
+00911: Pointer value               = 0x0c
+00912: Type of query    (ans)      = 1
+00913: Class (protocol) (ans)      = 1
+00914: Time to live                = 120
+00915: Record lenght               = 4
+00916: Assigned Ip address         = 127.0.0.1
+```
+
+
 
 ## List of changes
 
