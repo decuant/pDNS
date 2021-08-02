@@ -85,8 +85,8 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 25,							-- timer interval
-	iBatchLimit		= 5,							-- max servers per taks
+	iTaskInterval	= 35,							-- timer interval
+	iBatchLimit		= 7,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -104,7 +104,8 @@ local m_Mainframe =
 
 	hTickTimer		= nil,							-- timer associated with window
 	bReentryLock	= false,						-- avoid re-entrant calling
-	iTaskCounter	= 0,							-- backtask calls counter
+	
+	tStatus			= {0, 0, 0, 0},					-- total, enabled, completed, failed
 }
 
 -- ----------------------------------------------------------------------------
@@ -199,33 +200,59 @@ local function SetStatusText(inText)
 	
 	local hBar = m_Mainframe.hStatusBar
 	
-	hBar:SetStatusText(inText, 0)
+	hBar:SetStatusText(inText, 1)
 	
 	m_logger:line(inText)	
 end
 
 -- ----------------------------------------------------------------------------
 --
-local function SetStatusCounter(inValue)
-	
-	local hBar = m_Mainframe.hStatusBar
-	
-	hBar:SetStatusText(tostring(inValue), 4)
-end
-
--- ----------------------------------------------------------------------------
---
-local m_Symbols = "|/-\\|/-\\"
-local m_SymbInd = 0
+local m_SymbInd  = 0
+local m_tSymbols =
+{
+	"  |",	"  /",	"  -",	"  \\"
+}
 
 local function UpdateProgress()
 	
 	local hBar = m_Mainframe.hStatusBar
 	
 	m_SymbInd = m_SymbInd + 1
-	if  #m_Symbols < m_SymbInd then m_SymbInd = 1 end
+	if  #m_tSymbols < m_SymbInd then m_SymbInd = 1 end
 	
-	hBar:SetStatusText(string.sub(m_Symbols, m_SymbInd, m_SymbInd), 3)
+	hBar:SetStatusText(m_tSymbols[m_SymbInd], 0)
+end
+
+-- ----------------------------------------------------------------------------
+--
+local function UpdateStatus(inStatusTable)
+	
+	local hBar		= m_Mainframe.hStatusBar
+	local tStatus 	= m_Mainframe.tStatus
+	local bRefresh	= false
+	
+	-- check if refresh
+	--
+	for i=1, #tStatus do
+		
+		if tStatus[i] ~= inStatusTable[i] then
+			
+			bRefresh = true
+			break
+		end
+	end
+	
+	if not bRefresh then return end
+
+	-- save values and update screen
+	-- total, enabled, completed, failed
+	--
+	for i=1, #tStatus do 
+		
+		tStatus[i] = inStatusTable[i]
+		
+		hBar:SetStatusText(" " .. tostring(tStatus[i]), i + 1)
+	end
 end
 
 -- ----------------------------------------------------------------------------
@@ -302,6 +329,8 @@ local function ShowServers()
 		hGrid:SetCellValue(iRow, 2, tCurrent.tAddresses[2].sAddress)	-- ip address
 		hGrid:SetCellValue(iRow, 3, tCurrent.sReference)				-- url or name
 	end
+	
+	UpdateStatus({#tDNS, 0, 0, 0})
 end
 
 -- ----------------------------------------------------------------------------
@@ -313,8 +342,11 @@ local function UpdateDisplay()
 	local tDNS	  = m_thisApp.tServers			-- here we are sure the table is not empty
 	local hGrid	  = m_Mainframe.hGridDNSList
 	local tColors = m_Mainframe.tColors
-	
+	local tStatus = {#tDNS, 0, 0, 0}			-- total, enabled, completed, failed
+
 	for i, tCurrent in next, tDNS do
+		
+		if 1 == tCurrent.iEnabled then tStatus[2] = tStatus[2] + 1 end
 		
 		if tCurrent:HasCompletedAll() then
 			
@@ -323,6 +355,7 @@ local function UpdateDisplay()
 				if tCurrent:IsResponseOK(y) then
 				
 					hGrid:SetCellBackgroundColour(i - 1, y, tColors.cSucc)
+					tStatus[3] = tStatus[3] + 1
 				else
 					
 					-- extra check to avoid colouring a cell without address
@@ -330,11 +363,14 @@ local function UpdateDisplay()
 					if tCurrent:IsValid(y) then
 						
 						hGrid:SetCellBackgroundColour(i - 1, y, tColors.cFail)
+						tStatus[4] = tStatus[4] + 1
 					end
 				end
 			end
 		end
 	end
+	
+	UpdateStatus(tStatus)
 end
 
 -- ----------------------------------------------------------------------------
@@ -361,6 +397,7 @@ local function OnImportServers()
 	if 0 == ret then DlgMessage("Failed to read DNS servers' list\nor the list is empty") return end
 
 	ShowServers()
+	UpdateDisplay()
 end
 	
 -- ----------------------------------------------------------------------------
@@ -415,6 +452,8 @@ local function OnToggleEnable()
 		
 		SetEnable(tSelected[i], _abs(iValue - 1))
 	end
+	
+	UpdateDisplay()
 end
 
 -- ----------------------------------------------------------------------------
@@ -668,6 +707,62 @@ local function SetGridStyles(inGrid)
 end
 
 -- ----------------------------------------------------------------------------
+-- load functions from the module functions.lua
+-- re-create the menu entries
+--
+local rcMnuLoadFxs	= NewMenuID()
+	
+local function OnLoadFunctions()
+	m_logger:line("OnLoadFunctions")
+
+	-- find the menu "Functions"
+	--
+	local menuBar = m_Mainframe.hWindow:GetMenuBar()
+	local menuLoad, menuFxs = menuBar:FindItem(rcMnuLoadFxs)
+	
+	if not menuFxs then DlgMessage("Internal error!") return end
+
+	-- remove the menus except the very first
+	--
+	local iCount = menuFxs:GetMenuItemCount()
+
+	for i=1, iCount - 1 do
+		
+		menuFxs:Remove(menuFxs:FindItemByPosition(1))
+	end
+
+	-- compile and import functions
+	--
+	local functions	 = dofile("user.lua")
+	
+	-- create the menu entries
+	--
+	for _, item in next, functions do
+		
+		local id = NewMenuID()
+		
+		-- protected function to execute
+		--
+		MenuItemCmd = function()
+			
+			-- interpreted code at run time
+			-- locals are out of scope here at run time
+			-- use full names to select objects
+			--
+			local bRet = pcall(item[1], m_thisApp, m_Mainframe)
+			
+			if not bRet then DlgMessage(item[2] .. " failed!") end
+			
+			return bRet
+		end
+		
+		menuFxs:Append(id, item[2], item[3])
+		m_Mainframe.hWindow:Connect(id, wx.wxEVT_COMMAND_MENU_SELECTED, MenuItemCmd)
+	end
+
+end
+
+-- ----------------------------------------------------------------------------
 -- show the main window and runs the main loop
 --
 local function ShowMainWindow()
@@ -677,6 +772,7 @@ local function ShowMainWindow()
 
 	m_Mainframe.hWindow:Show(true)
 	
+	OnLoadFunctions()
 	OnImportServers()
 
 	-- run the main loop
@@ -764,6 +860,10 @@ local function CreateMainWindow(inApplication)
 	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-B",	"Start/Stop the backtask")
 	mnuCmds:Append(rcMnuResetCmpltd,"Reset completed\tCtrl-R",	"Reset the completed flag")
 
+	local mnuFunc = wx.wxMenu("", wx.wxMENU_TEAROFF)
+	
+	mnuFunc:Append(rcMnuLoadFxs, "Reload Functions\tCtrl-L", "Load functions.lua, create menu entries")
+
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
 	mnuHelp:Append(wx.wxID_ABOUT,    "&About",					"About the application")
@@ -776,6 +876,7 @@ local function CreateMainWindow(inApplication)
 	mnuBar:Append(mnuEdit,	"&Edit")
 	mnuBar:Append(mnuFilt,	"&Filter")
 	mnuBar:Append(mnuCmds,	"&Commands")
+	mnuBar:Append(mnuFunc,  "F&unctions")
 	mnuBar:Append(mnuHelp,	"&Help")
 
 	frame:SetMenuBar(mnuBar)
@@ -783,13 +884,13 @@ local function CreateMainWindow(inApplication)
 	-- ------------------------------------------------------------------------
 	-- create the bottom status bar
 	--
-	local stsBar = frame:CreateStatusBar(5, wx.wxST_SIZEGRIP)
+	local stsBar = frame:CreateStatusBar(6, wx.wxSB_RAISED)
 
 	stsBar:SetFont(wx.wxFont(iFontSize - 2, wx.wxFONTFAMILY_DEFAULT, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_NORMAL))      
-	stsBar:SetStatusWidths({-1, 75, 50, 50, 50}); 
+	stsBar:SetStatusWidths({20, -1, 75, 50, 50, 50}); 
 
-	stsBar:SetStatusText(m_thisApp.sAppName, 0)  
-	frame:SetStatusBarPane(0)                   	-- this is reserved for the menu
+	stsBar:SetStatusText(m_thisApp.sAppName, 1)  
+	frame:SetStatusBarPane(1)                   	-- this is reserved for the menu
 
 	-- ------------------------------------------------------------------------
 	-- standard event handlers
@@ -826,13 +927,11 @@ local function CreateMainWindow(inApplication)
 
 	notebook:SetBackgroundColour(palette.Gray20)
 	notebook:SetFont(fntNote)
-	
+
 	local newGrid = wx.wxGrid(notebook, wx.wxID_ANY, wx.wxDefaultPosition, notebook:GetSize()) 
 	notebook:AddPage(newGrid, "Servers List", true, 0)
 	SetGridStyles(newGrid)
-	
---	notebook:AddPage(gridDNS, "Experiment", false, 0)
-	
+
 	frame:Connect(wx.wxEVT_GRID_CELL_CHANGED, OnCellChanged)		-- connect the event to a handler
 
 	-- assign an icon
@@ -855,6 +954,8 @@ local function SetupPublic()
 	m_Mainframe.CreateMainWindow	= CreateMainWindow
 	m_Mainframe.ShowMainWindow		= ShowMainWindow
 	m_Mainframe.CloseMainWindow		= CloseMainWindow
+	m_Mainframe.ShowServers			= ShowServers
+	m_Mainframe.UpdateDisplay		= UpdateDisplay
 end
 
 -- ----------------------------------------------------------------------------
