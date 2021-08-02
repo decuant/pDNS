@@ -143,6 +143,40 @@ local m_Config =
 }
 
 -- ----------------------------------------------------------------------------
+-- remove leading whitespace from string.
+-- http://en.wikipedia.org/wiki/Trim_(programming)
+--
+local function str_ltrim(inString)
+	
+	if not inString then return "" end
+
+	return inString:gsub("^%s*", "")
+end
+
+-- ----------------------------------------------------------------------------
+-- test if the input string is a valid ip4 address
+--
+local function str_testip4(inString)
+	
+	inString = str_ltrim(inString) 
+	if 0 == #inString then return false end
+	
+	local iNumber
+	local iParts = 0
+	
+	for sToken in string.gmatch(inString, "[^.]*") do
+		
+		iNumber = tonumber(sToken) or -1
+		
+		if 0 > iNumber or 256 <= iNumber then return false end
+		
+		iParts = iParts + 1
+	end
+
+	return 4 == iParts
+end
+
+-- ----------------------------------------------------------------------------
 -- select rows that contain the specified text
 --
 local function ApplyFilters(inTable)
@@ -279,20 +313,26 @@ local function Process()
 			if iCellIndex > #tEnabled then break end
 		end
 		
-		-- rows are not stored by index but using a label
-		--
-		sLabel = tCurRow[2]
+		if str_testip4(tCurRow[1]) then
 		
-		if not tServers[sLabel] then
+			-- rows are not stored by index but using a label
+			--
+			sLabel = tCurRow[2]
 			
-			-- add a new entry
-			--
-			tServers[sLabel] = {tostring(tCurRow[1]), "", sLabel .. " - " .. tCurRow[4] .. " (" .. tCurRow[3] .. ")"}
+			if not tServers[sLabel] then
+				
+				-- add a new entry
+				--
+				tServers[sLabel] = {tostring(tCurRow[1]), "", sLabel .. " - " .. tCurRow[4] .. " (" .. tCurRow[3] .. ")"}
+			else
+			
+				-- substitute 2nd address
+				--
+				tServers[sLabel][2] = tostring(tCurRow[1])
+			end
 		else
-		
-			-- substitute 2nd address
-			--
-			tServers[sLabel][2] = tostring(tCurRow[1])
+			
+			m_logger:showerr("invalid buffer", aLine)
 		end
 	end
 	
@@ -334,7 +374,7 @@ local function GetLines()
 		--
 		if sLine:find("::", 1, true) then
 			
---			m_logger:line("Binned: " .. sLine)
+			m_logger:line("Binned: " .. sLine)
 			iBinned = iBinned + 1
 		else
 			

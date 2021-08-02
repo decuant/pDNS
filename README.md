@@ -40,7 +40,7 @@ File ``user.lua`` is a container for plugin functions, it can be modified and re
 
 File ``data/samplehosts.lua`` holds a table of sample hosts that are assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list.
 
-For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
+For the time being DNS servers are questioned only with a TYPE 1 <<hostname>>. Response and analisys of the response are recorded in the log ``log/protocol.log``.
 
 The status bar shows counters for: Total Servers, Enabled Servers, Responding Addresses, Not Responding Addresses.
 

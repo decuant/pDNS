@@ -7,7 +7,7 @@
 local trace		= require("lib.trace")			-- shortcut for tracing
 local mainWin	= require("lib.window")			-- GUI for the application
 local DNSFactory= require("lib.dnsclient")		-- DNS client
-local random	= require("lib.random")
+local random	= require("lib.random")			-- random number generator
 
 local _frmt		= string.format
 local _cat		= table.concat
@@ -69,22 +69,19 @@ local function GetNextHost()
 end
 
 -- ----------------------------------------------------------------------------
---
-
--- ----------------------------------------------------------------------------
 -- swap elements around in the servers' list
 --
 local function OnScramble()
 	m_logger:line("OnScramble")
-	
+
 	local tServers	= m_App.tServers
 	local iMax		= _floor(#tServers / 2)
 	local iUpper	= #tServers
 	local ilower	= iMax + 1
-	
+
 	local tTemp
 	local iSwap
-	
+
 	for i=1, iMax do
 		
 		iSwap = _floor(m_random:getBoxed(ilower, iUpper))
@@ -94,6 +91,38 @@ local function OnScramble()
 		tServers[iSwap] = tTemp
 	end
 end
+
+-- ----------------------------------------------------------------------------
+-- swap elements around in the servers' list
+--
+local function OnFuzzyToggle()
+	m_logger:line("OnFuzzyToggle")
+
+	local tServers	= m_App.tServers
+--	local iMax		= _floor(#tServers / 2)
+--	local iUpper	= #tServers
+--	local ilower	= iMax + 1
+
+	for _, server in next, tServers do
+		
+		server.iEnabled = _floor(m_random:getBoxed(0, 2))
+	end
+
+--	local tTemp
+--	local iSwap
+
+--	for i=1, iMax do
+		
+--		iSwap = _floor(m_random:getBoxed(ilower, iUpper))
+		
+--		tTemp 			= tServers[i]
+--		tServers[i]		= tServers[iSwap]
+--		tServers[iSwap] = tTemp
+--	end
+end
+
+-- ----------------------------------------------------------------------------
+--
 
 -- ----------------------------------------------------------------------------
 -- run a task for each server in list
@@ -194,13 +223,13 @@ local function EnableServers(inRowsList, inEnabled)
 --	m_logger:line("EnableServers")
 
 	local tServers 	= m_App.tServers
-	local tReturn	= { }
 
 	-- if either the rows' list or the servers' list are empty
 	-- then return an empty list
 	--
 	if not next(tServers) or not next(inRowsList) then return tReturn end
 
+	local tReturn = { }
 	local server
 
 	for _, row in next, inRowsList do
@@ -335,9 +364,7 @@ local function ImportServersFromFile()
 		
 		m_App.tServers = tServers
 	end
-	
-	OnScramble()
-	
+
 	return #m_App.tServers
 end
 
@@ -435,6 +462,8 @@ local function SetupPublic()
 	m_App.PurgeServers	= PurgeServers
 	m_App.DeleteServers	= DeleteServers
 	m_App.RunBatch		= OnRunBatch
+	m_App.Scramble		= OnScramble
+	m_App.FuzzyToggle	= OnFuzzyToggle
 end
 
 -- ----------------------------------------------------------------------------
