@@ -31,10 +31,30 @@ After testing some servers.
 
 ![Main dialog active](/docs/Main_Dialog2.png)
 
+This program is not intended for speed benchmarcking, but rather to question servers.
+
+Eventually, load all names servers and enable each in list, then enable the backtask and cycle 3 or 4 times the sequence:
+``purge the failing servers and reset the completion status`` will give you a list of trustful servers.
+
+File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
+
+File ``data/samplehosts.lua`` holds a table of sample hosts that are assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list.
+
+For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
+
+The status bar shows counters for: Total Servers, Enabled Servers, Responding Addresses, Not Responding Addresses.
+
+When purging servers, a server with 2 addresses, of which 1 is not responding, will be removed, either way.
+
+
 ## List of changes
 
 ### Rel. 0.0.5
 
+- Added extra check in convert.lua.
+- Added counters in the status bar.
+- Load set of functions in external file as menu.
+- Fuzzy toggle the enable flag for each server in list.
 - Scramble servers' list.
 - Minimized grid resfresh calls.
 
