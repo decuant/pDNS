@@ -49,7 +49,7 @@ When purging servers, a server with 2 addresses, of which 1 is not responding, w
 
 ## Response
 
-...
+```
 
 05815: ----- [ Response 2983 ] -----
 00000000  0B A7 81 80 00 01 00 03 00 00 00 00 0A 73 61 74  .?.?.........sat
@@ -91,7 +91,7 @@ When purging servers, a server with 2 addresses, of which 1 is not responding, w
 05847: Record lenght               = 4
 05848: Assigned Ip address         = 104.26.2.14
 05849: 
-...
+```
 
 
 ## List of changes
