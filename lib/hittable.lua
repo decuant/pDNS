@@ -7,7 +7,6 @@
 
 local _cat	= table.concat
 local _frmt = string.format
---local _clock = os.clock
 
 local HitTable	 = { }
 HitTable.__index = HitTable
@@ -16,12 +15,15 @@ local m_sConfigFile = "data\\Hit-Test.lua"
 
 -- ----------------------------------------------------------------------------
 --
-function HitTable.new()
+function HitTable.new(inEnable)
 
+	inEnable = inEnable or false
+	
 	local t =
 	{
-		m_List		= { },
-		m_Modified	= false,
+		bEnabled	= inEnable,
+		tList		= { },
+		bModified	= false,
 	}
 
 	return setmetatable(t, HitTable)
@@ -31,7 +33,9 @@ end
 --
 function HitTable.incKey(self, inRoot, inKey)
 
-	local m = self.m_List
+	if not self.bEnabled then return end
+
+	local m = self.tList
 	local r = m[inRoot]
 	
 	-- check root
@@ -57,34 +61,34 @@ function HitTable.incKey(self, inRoot, inKey)
 	
 	-- need save
 	--
-	self.m_Modified = true
+	self.bModified = true
 end
 
 -- ----------------------------------------------------------------------------
 --
 function HitTable.reset(self)
 
-	self.m_List	= { }
+	self.tList	= { }
 end
 
 -- ----------------------------------------------------------------------------
 --
 function HitTable.backup(self)
 
-	if not self.m_Modified then return false end
+	if not self.bEnabled then return false end
+	if not self.bModified then return false end
 	
 	-- build the string
 	--
-	local tOutput = { }
-	local m = self.m_List
+	local tRoot		= self.tList
+	local tOutput 	= { }
+	local sFormatKey
 	
 	tOutput[#tOutput + 1] = "local _hittable =\n{"
 
-	for rootkey, rootvalue in next, m do
+	for rootkey, rootvalue in next, tRoot do
 		
 		tOutput[#tOutput + 1] = _frmt("\n\t[\"%s\"] =\n\t{", rootkey)
-		
-		local sFormatKey
 		
 		for key, value in next, rootvalue do
 			
@@ -108,7 +112,7 @@ function HitTable.backup(self)
 	
 	-- reset status here
 	--
-	self.m_Modified = false
+	self.bModified = false
 	
 	return true
 end
@@ -116,6 +120,8 @@ end
 -- ----------------------------------------------------------------------------
 --
 function HitTable.restore(self)
+	
+	if not self.bEnabled then return end
 
 	local fd = io.open(m_sConfigFile, "r")
 	if not fd then return end
@@ -123,11 +129,11 @@ function HitTable.restore(self)
 	
 	local t = dofile(m_sConfigFile)
 
-	if t then self.m_List = t end
+	if t then self.tList = t end
 	
 	-- add member here
 	--
-	self.m_Modified = false
+	self.bModified = false
 end
 
 -- ----------------------------------------------------------------------------

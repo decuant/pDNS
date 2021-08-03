@@ -72,8 +72,9 @@ local function _getSeed()
 end
 
 -------------------------------------------------------------------------------
+-- crate the statistic table and set the enable flag
 --
-local m_HitTest	= hits.new()
+local m_HitTest	= hits.new(true)
 m_HitTest:restore()
 
 -------------------------------------------------------------------------------
@@ -347,7 +348,7 @@ function DnsProtocol.ParseAnswers(self, inFrame, inCount)
 			
 			sIpAddress = _cat(tIpParts, ".")
 			
-			-- Antonio
+			-- increment the hit test
 			--
 			m_HitTest:incKey(self.m_UrlReq, sIpAddress)
 			
@@ -424,7 +425,7 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount)
 			
 			sIpAddress = _cat(tIpParts, ".")
 			
-			-- Antonio
+			-- increment the hit test
 			--
 			m_HitTest:incKey(self.m_UrlReq, sIpAddress)
 			
