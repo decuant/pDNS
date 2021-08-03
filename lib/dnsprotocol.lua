@@ -10,6 +10,7 @@
 -- ----------------------------------------------------------------------------
 --
 local trace = require("lib.trace")
+local hits  = require("lib.hittable")
 
 local _frmt	= string.format
 local _chr	= string.char
@@ -69,6 +70,11 @@ local function _getSeed()
 	
 	return m_iCurSeed
 end
+
+-------------------------------------------------------------------------------
+--
+local m_HitTest	= hits.new()
+m_HitTest:restore()
 
 -------------------------------------------------------------------------------
 --
@@ -172,8 +178,6 @@ end
 -- ----------------------------------------------------------------------------
 -- fills in the protocol status from a received message
 --
---local m_iHdrLength = 12
-
 function DnsProtocol.ParseHeader(self, inFrame, inMatchId)
 --	m_trace:line("ParseHeader")
 	
@@ -306,6 +310,10 @@ function DnsProtocol.ParseBody(self, inFrame)
 	m_trace:line("URL requested               = " .. sURL)
 	m_trace:line("Type of query    (req)      = " .. iType)
 	m_trace:line("Class (protocol) (req)      = " .. iClass)
+	
+	-- need to save the host name given
+	--
+	self.m_UrlReq = sURL
 
 	return iIndex
 end
@@ -338,6 +346,10 @@ function DnsProtocol.ParseAnswers(self, inFrame, inCount)
 			iIndex = iIndex + iRLen
 			
 			sIpAddress = _cat(tIpParts, ".")
+			
+			-- Antonio
+			--
+			m_HitTest:incKey(self.m_UrlReq, sIpAddress)
 			
 			m_trace:line("Assigned Ip address         = " .. sIpAddress)
 			
@@ -411,6 +423,10 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount)
 			iIndex = iIndex + iRLen
 			
 			sIpAddress = _cat(tIpParts, ".")
+			
+			-- Antonio
+			--
+			m_HitTest:incKey(self.m_UrlReq, sIpAddress)
 			
 			m_trace:line("Assigned Ip address         = " .. sIpAddress)
 			
@@ -506,7 +522,18 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId)
 end
 
 -- ----------------------------------------------------------------------------
+-- flush the statistic to file
 --
+function DnsProtocol.DumpStats(self)
+--	m_trace:line("DumpStats")
+
+	return m_HitTest:backup()
+end
+
+-- ----------------------------------------------------------------------------
+--
+_G.DnsProtocol = DnsProtocol
+
 return DnsProtocol
 
 -- ----------------------------------------------------------------------------

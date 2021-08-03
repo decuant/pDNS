@@ -91,8 +91,8 @@ end
 local CliConsts = 
 {
 	maxSteps	= 5,				-- communication steps
-	maxRetries	= 4, 				-- max retries per step
-	timeout		= 0.0500,			-- step timeout
+	maxRetries	= 10, 				-- max retries per step
+	timeout		= 0.0125,			-- step timeout
 	sockDelay	= 0.0001,			-- udp socket timeout
 }
 
@@ -371,11 +371,11 @@ function DnsClient.ProcessStatus(self, inIndex)
 			
 			tTickAt:reset()
 			tAddress.iRetries = tAddress.iRetries + 1
---			
---			m_trace:line(_frmt("RESET %s retries [%d]", tTickAt:toString(), tAddress.iRetries))
---		else
---			
---			m_trace:line(_frmt("RETRY %s retries [%d]", tTickAt:toString(), tAddress.iRetries))
+		else
+			
+			m_trace:line("• Idle")
+			
+			return bReturn
 		end
 	end
 
@@ -422,7 +422,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 			m_trace:showerr( "No question sent", sAddress)
 		else
 			
-			m_trace:dump("Query", sQuestion)
+--			m_trace:dump("Query", sQuestion)
 			
 			-- remember status
 			--
@@ -449,6 +449,11 @@ function DnsClient.ProcessStatus(self, inIndex)
 			if m_Protocol:ParseMessage(sCurFrame, tAddress.iCurFrameId) then
 				
 				self.iDnsResult = self.iDnsResult + (1 << (inIndex - 1))
+				
+				m_trace:line("•• Response OK")
+			else
+				
+				m_trace:line("•• Server error")
 			end
 			
 			-- remember status

@@ -337,7 +337,7 @@ end
 -- update the display
 --
 local function UpdateDisplay()
-	m_logger:line("UpdateDisplay")
+--	m_logger:line("UpdateDisplay")
 
 	local tDNS	  = m_thisApp.tServers			-- here we are sure the table is not empty
 	local hGrid	  = m_Mainframe.hGridDNSList
