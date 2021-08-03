@@ -149,7 +149,7 @@ This is a not typical answer.
 
 ## Hit Test
 
-A basic count of ip address hits is enabled in code at the protocol level. It is dumped into the ``data`` folder and can grow big.
+A basic count of ip address hits is enabled in code at the protocol level. It is dumped into the ``data`` folder and can grow big. Some hosts never change ip address, while others change it every few seconds.
 
 This is an example.
 
