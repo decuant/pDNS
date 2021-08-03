@@ -72,7 +72,7 @@ end
 -- swap elements around in the servers' list
 --
 local function OnScramble()
-	m_logger:line("OnScramble")
+--	m_logger:line("OnScramble")
 
 	local tServers	= m_App.tServers
 	local iMax		= _floor(#tServers / 2)
@@ -96,29 +96,23 @@ end
 -- swap elements around in the servers' list
 --
 local function OnFuzzyToggle()
-	m_logger:line("OnFuzzyToggle")
+--	m_logger:line("OnFuzzyToggle")
 
-	local tServers	= m_App.tServers
---	local iMax		= _floor(#tServers / 2)
---	local iUpper	= #tServers
---	local ilower	= iMax + 1
+	local tServers = m_App.tServers
+	if 0 == #tServers then return end
 
-	for _, server in next, tServers do
+	-- make a random start point
+	--
+	local iIndex = _floor(m_random:getBoxed(1, 5))
+
+	-- use a random step
+	--
+	while #tServers >= iIndex do
 		
-		server.iEnabled = _floor(m_random:getBoxed(0, 2))
+		tServers[iIndex].iEnabled = _floor(m_random:getBoxed(0, 2))
+		
+		iIndex = iIndex + _floor(m_random:getBoxed(1, 5))
 	end
-
---	local tTemp
---	local iSwap
-
---	for i=1, iMax do
-		
---		iSwap = _floor(m_random:getBoxed(ilower, iUpper))
-		
---		tTemp 			= tServers[i]
---		tServers[i]		= tServers[iSwap]
---		tServers[iSwap] = tTemp
---	end
 end
 
 -- ----------------------------------------------------------------------------
@@ -153,6 +147,14 @@ local function OnRunBatch(inLimit)
 		-- check for end of batch
 		--
 		if inLimit == iBatch then break end
+	end
+	
+	-- if idling the flush stats
+	--
+	if 0 == iBatch then 
+		
+		DnsProtocol:DumpStats()
+		collectgarbage()
 	end
 	
 	return iLastIndex

@@ -56,9 +56,9 @@ end
 --
 local functions =
 {
-	{Menu_Copy_All2Servers, "Make new servers",	"Make nameservers-all the new list"},
-	{Menu_Modify_Scramble,	"Scramble list",	"Rebuild the list in random order"},
-	{Menu_Modify_FuzzyToggle, "Fuzzy toggle",	"Toggle enable in random fashion"},
+	{Menu_Copy_All2Servers, "Make new servers\tCtrl-1",	"Make nameservers-all the new list"},
+	{Menu_Modify_Scramble,	"Scramble list\tCtrl-2",	"Rebuild the list in random order"},
+	{Menu_Modify_FuzzyToggle, "Fuzzy toggle\tCtrl-3",	"Toggle enable in random fashion"},
 }
 
 return functions

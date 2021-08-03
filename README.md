@@ -147,12 +147,60 @@ This is a not typical answer.
 00916: Assigned Ip address         = 127.0.0.1
 ```
 
+## Hit Test
 
+A basic count of ip address hits is enabled in code at the protocol level. It is dumped into the ``data`` folder and can grow big.
+
+This is an example.
+
+```
+local _hittable =
+{
+
+	["www.wordreference.com"] =
+	{
+		["138.201.122.174"] = 12,
+		["23.111.171.90"]   = 3,
+		["195.201.57.207"]  = 8,
+	},
+
+	["fixounet.free.fr"] =
+	{
+		["212.27.63.105"]   = 29,
+	},
+
+	["news.ycombinator.com"] =
+	{
+		["209.216.230.240"] = 17,
+	},
+
+	["observablehq.com"] =
+	{
+		["104.22.20.220"]   = 22,
+		["172.67.37.221"]   = 22,
+		["104.22.21.220"]   = 22,
+	},
+
+	["www.opensubtitles.org"] =
+	{
+		["104.26.8.126"]    = 18,
+		["172.67.72.143"]   = 18,
+		["104.26.9.126"]    = 18,
+	},
+
+	["www.barbarianfc.co.uk"] =
+	{
+		["52.17.214.161"]   = 4,
+	},
+
+	...
+```
 
 ## List of changes
 
 ### Rel. 0.0.5
 
+- Dump protocol statistics.
 - Added extra check in convert.lua.
 - Added counters in the status bar.
 - Load set of functions in external file as menu.
