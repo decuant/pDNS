@@ -36,18 +36,21 @@ After testing some servers.
 
 This program is not intended for speed benchmarcking, but rather to question servers.
 
-To make a useful list, load all names servers and enable each in list, then enable the backtask and cycle 3 or 4 times the sequence: purge the failing servers and reset the completion status.
+It runs a backtask on the main window timer and tests a batch of servers per tick. Beside recommendations DNS servers work with UDP and as it is not supported by wxLua, it uses ``luasocket`` (on Windows the required filename is ``socket.dll``). Other concurrent implementations are not advisable.
 
-File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
+It uses a single file ``data/servers.lua`` for the servers' address list.
 
-File ``data/samplehosts.lua`` holds a table of sample hosts that are assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list.
-To avoid assigning to the any server the same host question, scramble the servers' list, save and reload; this shuffles the host assigned to a server.
+File ``data/samplehosts.lua`` holds a table of __hosts for sampling__, assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list. Scramble the servers' list, save and reload; this shuffles the host assigned to a server.
 
 For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
 
-The status bar shows counters for: Total Servers, Enabled Servers, Responding Addresses, Not Responding Addresses.
+When purging servers note that a server with 2 addresses and different responding status is a logcal failure.
 
-When purging servers, a server with 2 addresses, of which 1 is not responding, will be removed, either way.
+To make a 'Best Responding' list, load all names servers and enable each in list, then start the backtask and cfor 3 to 4 times purge the failing servers and reset the completion status.
+
+File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
+
+The status bar shows counters for: Servers, Enabled, Responding, Not Responding (of which the first 2 are servers and the last 2 are addresses).
 
 
 ## Response
