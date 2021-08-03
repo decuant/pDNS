@@ -19,34 +19,32 @@ Download ```nameservers.csv``` from https://public-dns.info/.
 
 Run this script to have the csv file converted to a Lua table, which can be the new servers' list.
 
-There's no settings file, since the script is truly little, thus modify the source to suit your needs.
+There's no settings file, since the script is little.
 
-A list of country codes, divided by continent, can be used to filter out rows of no interest.
+A list of country codes, grouped by continent, can be used to filter out rows of no interest.
 
 
 ### .2 **main.lua**
 
-After loading a test file.
+Starting the application with the predefined file.
 
 ![Main dialog inactive](/docs/Main_Dialog1.png)
 
-After testing some servers.
+Starting the backtask to poll each enabled server.
 
 ![Main dialog active](/docs/Main_Dialog2.png)
 
-This program is not intended for speed benchmarcking, but rather to question servers.
+It runs a backtask on the main window timer and tests a batch of servers per tick. Beside recommendations DNS servers work with UDP and as it is not supported by wxLua, the program uses ``luasocket`` (on Windows the required filename is ``socket.dll``). Other concurrent implementations are not advisable. This program is not intended for speed benchmarking, but to question servers.
 
-It runs a backtask on the main window timer and tests a batch of servers per tick. Beside recommendations DNS servers work with UDP and as it is not supported by wxLua, it uses ``luasocket`` (on Windows the required filename is ``socket.dll``). Other concurrent implementations are not advisable.
+The pre-configured ``data/servers.lua`` is the servers' address list in Lua table format.
 
-It uses a single file ``data/servers.lua`` for the servers' address list.
-
-File ``data/samplehosts.lua`` holds a table of __hosts for sampling__, assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list. Scramble the servers' list, save and reload; this shuffles the host assigned to a server.
+File ``data/samplehosts.lua`` holds a Lua table of __Hosts for Sampling__, assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list. Scramble the servers' list, save and reload; this shuffles the host assigned to a server.
 
 For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
 
-When purging servers note that a server with 2 addresses and different responding status is a logcal failure.
+When purging servers note that a server with 2 addresses having different responding status is a logical failure.
 
-To make a 'Best Responding' list, load all names servers and enable each in list, then start the backtask and cfor 3 to 4 times purge the failing servers and reset the completion status.
+To make a __Best Responding__ list, load all names servers and enable each in list, then start the backtask and for 3 to 4 times purge the failing servers and reset the completion status.
 
 File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
 
