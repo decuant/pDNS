@@ -446,7 +446,7 @@ function DnsClient.ProcessStatus(self, inIndex)
 			
 			-- m_trace:dump("Reply", sCurFrame)
 			
-			if m_Protocol:ParseMessage(sCurFrame, tAddress.iCurFrameId) then
+			if m_Protocol:ParseMessage(sCurFrame, tAddress.iCurFrameId, self.sQueryHost) then
 				
 				self.iDnsResult = self.iDnsResult + (1 << (inIndex - 1))
 				

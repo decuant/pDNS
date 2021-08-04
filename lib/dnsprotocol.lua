@@ -74,7 +74,7 @@ end
 -------------------------------------------------------------------------------
 -- crate the statistic table and set the enable flag
 --
-local m_HitTest	= hits.new(false)
+local m_HitTest	= hits.new(true)
 m_HitTest:restore()
 
 -------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ function DnsProtocol.FormatIPQuery(self, inType, inDestUrl)
 	self.iMsgId = _getSeed()
 	self.iType	= inType
 	
-	self.sUrlReq = inDestUrl
+--	self.sUrlReq = inDestUrl
 	
 	-- frame header
 	--
@@ -192,7 +192,7 @@ function DnsProtocol.ParseHeader(self, inFrame, inMatchId)
 		
 		m_trace:showerr("Failed id match", inMatchId)
 		
-		return 0, 0, 0
+		return {0, 0, 0, 0}
 	end
 	
 	local tFlags1	= { }
@@ -231,30 +231,8 @@ function DnsProtocol.ParseHeader(self, inFrame, inMatchId)
 	m_trace:line("Answers count               = " .. tFlags3.iAnCount)
 	m_trace:line("Authoritative servers count = " .. tFlags3.iNsCount)	
 	m_trace:line("Additional records count    = " .. tFlags3.iArCount)
-
-	if 0 < tFlags2.iRc then
-		
-		-- increment the hit test
-		--
---		m_HitTest:incKey(self.sUrlReq, "DNS status err.")
-		
-		m_trace:showerr("Return code failure", tDnsErrCodes[tFlags2.iRc + 1])
-		
-		return 0, 0, 0
-	end
-
-	if 0 == tFlags3.iAnCount then 
-		
-		-- increment the hit test
-		--
---		m_HitTest:incKey(self.sUrlReq, "Host not known")
-		
-		m_trace:showerr("No answer available", inMatchId)
-		
-		return 0, 0, 0
-	end
 	
-	return tFlags3.iAnCount, tFlags3.iNsCount, tFlags3.iArCount
+	return {tFlags2.iRc, tFlags3.iAnCount, tFlags3.iNsCount, tFlags3.iArCount}
 end
 
 -- ----------------------------------------------------------------------------
@@ -326,7 +304,7 @@ function DnsProtocol.ParseBody(self, inFrame)
 	
 	-- need to save the host name given
 	--
-	self.m_UrlReq = sURL
+--	self.sUrlReq = sURL
 
 	return iIndex
 end
@@ -488,7 +466,7 @@ end
 -- ----------------------------------------------------------------------------
 -- parse the received message
 --
-function DnsProtocol.ParseMessage(self, inFrame, inMatchId)
+function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 --	m_trace:line("ParseMessage")
 
 	inFrame   = inFrame or ""
@@ -496,14 +474,22 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId)
 
 	if 0 == #inFrame or 0 >= inMatchId then return false end
 
-	m_trace:dump("Response " .. tostring(inMatchId), inFrame)	
+	self.sUrlReq = inHostname
+	m_trace:dump("Response: " .. inHostname, inFrame)	
 
 	-- ----------------------
 	-- Header
 	--
-	local iAnswers, iAuthorit, iAdditnl = self:ParseHeader(inFrame, inMatchId)
+	local tAnswers	= self:ParseHeader(inFrame, inMatchId)
+	local bReturn	= false
 	
-	if 0 < iAnswers then
+	if 0 < tAnswers[1] then
+		
+		local sMessage = tDnsErrCodes[tAnswers[1] + 1]
+		
+		m_trace:showerr("Return code failure", sMessage)
+	
+	elseif 0 < tAnswers[2] then
 	
 		-- ----------------------
 		-- Body
@@ -515,24 +501,28 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId)
 		inFrame = _sub(inFrame, iIndex, -1)						-- remove the header
 		iIndex  = self:ParseBody(inFrame)
 		inFrame = _sub(inFrame, iIndex, -1)						-- remove the body
-		iIndex  = self:ParseAnswers(inFrame, iAnswers)
+		iIndex  = self:ParseAnswers(inFrame, tAnswers[2])
 		
-	--	if 0 < iAuthorit then
+	--	if 0 < tAnswers[3] then
 			
 	--		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
-	--		iIndex  = self:ParseAuthoritatives(inFrame, iAuthorit)
+	--		iIndex  = self:ParseAuthoritatives(inFrame, tAnswers[3])
 	--	end
 		
-	--	if 0 < iAdditnl then
+	--	if 0 < tAnswers[4] then
 			
 	--		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
-	--		iIndex  = self:ParseAuthoritatives(inFrame, iAdditnl)
+	--		iIndex  = self:ParseAuthoritatives(inFrame, tAnswers[4])
 	--	end
+		bReturn = true
+	else
+		
+		m_trace:showerr("No answer available", inHostname)
 	end
 
 	m_trace:line("")
-	
-	return true
+
+	return bReturn
 end
 
 -- ----------------------------------------------------------------------------

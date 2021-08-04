@@ -52,13 +52,13 @@ local m_tDefColours =
 		cColFo1	= palette.Black,
 		cColBk2	= palette.LightBlue3,
 		cColFo2	= palette.Black,
-		cColBk3	= palette.Gray20,
-		cColFo3	= palette.Gray70,
+		cColBk3	= palette.AntiqueWhite,
+		cColFo3	= palette.Brown4,
 		cFail	= palette.MediumPurple2,
 		cSucc	= palette.Yellow1,
 		cLines	= palette.Gray20,
-		CLblBk	= palette.Brown4,
-		CLblFo	= palette.LightSalmon1,
+		CLblBk	= palette.WhiteSmoke,
+		CLblFo	= palette.LightSalmon3,
 	},
 	
 	tSchemePersia =
@@ -119,7 +119,7 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 35,							-- timer interval
+	iTaskInterval	= 45,							-- timer interval
 	iBatchLimit		= 9,							-- max servers per taks
 }
 
@@ -133,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeContrast,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window

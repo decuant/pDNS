@@ -34,15 +34,20 @@ end
 function HitTable.incKey(self, inRoot, inKey)
 
 	if not self.bEnabled then return end
+	
+	inRoot = inRoot or "?? Root ??"
+	inKey  = inKey  or "?? Key  ??"
 
-	local m = self.tList
-	local r = m[inRoot]
+	if 0 == #inRoot or 0 == #inKey then return end
+
+	local m = self.tList		-- master
+	local r = m[inRoot]			-- root
 	
 	-- check root
 	--
 	if not r then 
 		
-		m[inRoot] = { }
+		m[inRoot] = { }			-- create branch
 		r = m[inRoot]
 	end
 	
@@ -52,7 +57,7 @@ function HitTable.incKey(self, inRoot, inKey)
 	
 	if not t then
 		
-		r[inKey] = 0
+		r[inKey] = 0			-- create leaf
 	end
 	
 	-- inc value
@@ -94,7 +99,7 @@ function HitTable.backup(self)
 			
 			sFormatKey = _frmt("[\"%s\"]", key)
 		
-			tOutput[#tOutput + 1] = _frmt("\t\t%- 20s= %d,", sFormatKey, value)
+			tOutput[#tOutput + 1] = _frmt("\t\t%- 19s = %d,", sFormatKey, value)
 		end
 		
 		tOutput[#tOutput + 1] = "\t},"
