@@ -74,7 +74,7 @@ end
 -------------------------------------------------------------------------------
 -- crate the statistic table and set the enable flag
 --
-local m_HitTest	= hits.new(true)
+local m_HitTest	= hits.new(false)
 m_HitTest:restore()
 
 -------------------------------------------------------------------------------
@@ -113,6 +113,8 @@ function DnsProtocol.new()
 			iNs		=  0x0000,		-- Authoritative servers	
 			iAr		=  0x0000,		-- Additional records
 		},
+		
+		sUrlReq		= "",
 	}
 
 	return setmetatable(t, DnsProtocol)
@@ -130,6 +132,8 @@ function DnsProtocol.FormatIPQuery(self, inType, inDestUrl)
 	--
 	self.iMsgId = _getSeed()
 	self.iType	= inType
+	
+	self.sUrlReq = inDestUrl
 	
 	-- frame header
 	--
@@ -188,7 +192,7 @@ function DnsProtocol.ParseHeader(self, inFrame, inMatchId)
 		
 		m_trace:showerr("Failed id match", inMatchId)
 		
-		return 0
+		return 0, 0, 0
 	end
 	
 	local tFlags1	= { }
@@ -228,18 +232,26 @@ function DnsProtocol.ParseHeader(self, inFrame, inMatchId)
 	m_trace:line("Authoritative servers count = " .. tFlags3.iNsCount)	
 	m_trace:line("Additional records count    = " .. tFlags3.iArCount)
 
-	if 0 < tFlags2.iRc then 
+	if 0 < tFlags2.iRc then
+		
+		-- increment the hit test
+		--
+--		m_HitTest:incKey(self.sUrlReq, "DNS status err.")
 		
 		m_trace:showerr("Return code failure", tDnsErrCodes[tFlags2.iRc + 1])
 		
-		return 0
+		return 0, 0, 0
 	end
 
 	if 0 == tFlags3.iAnCount then 
 		
+		-- increment the hit test
+		--
+--		m_HitTest:incKey(self.sUrlReq, "Host not known")
+		
 		m_trace:showerr("No answer available", inMatchId)
 		
-		return 0
+		return 0, 0, 0
 	end
 	
 	return tFlags3.iAnCount, tFlags3.iNsCount, tFlags3.iArCount
@@ -350,7 +362,7 @@ function DnsProtocol.ParseAnswers(self, inFrame, inCount)
 			
 			-- increment the hit test
 			--
-			m_HitTest:incKey(self.m_UrlReq, sIpAddress)
+			m_HitTest:incKey(self.sUrlReq, sIpAddress)
 			
 			m_trace:line("Assigned Ip address         = " .. sIpAddress)
 			
@@ -427,7 +439,7 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount)
 			
 			-- increment the hit test
 			--
-			m_HitTest:incKey(self.m_UrlReq, sIpAddress)
+			m_HitTest:incKey(self.sUrlReq, sIpAddress)
 			
 			m_trace:line("Assigned Ip address         = " .. sIpAddress)
 			
@@ -491,32 +503,33 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId)
 	--
 	local iAnswers, iAuthorit, iAdditnl = self:ParseHeader(inFrame, inMatchId)
 	
-	if 0 == iAnswers then return false end
+	if 0 < iAnswers then
 	
-	-- ----------------------
-	-- Body
-	--
-	local iIndex	= 13
-	local iRLen		= 0
-	local iType		= 0
-	
-	inFrame = _sub(inFrame, iIndex, -1)						-- remove the header
-	iIndex  = self:ParseBody(inFrame)
-	inFrame = _sub(inFrame, iIndex, -1)						-- remove the body
-	iIndex  = self:ParseAnswers(inFrame, iAnswers)
-	
---	if 0 < iAuthorit then
+		-- ----------------------
+		-- Body
+		--
+		local iIndex	= 13
+		local iRLen		= 0
+		local iType		= 0
 		
---		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
---		iIndex  = self:ParseAuthoritatives(inFrame, iAuthorit)
---	end
-	
---	if 0 < iAdditnl then
+		inFrame = _sub(inFrame, iIndex, -1)						-- remove the header
+		iIndex  = self:ParseBody(inFrame)
+		inFrame = _sub(inFrame, iIndex, -1)						-- remove the body
+		iIndex  = self:ParseAnswers(inFrame, iAnswers)
 		
---		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
---		iIndex  = self:ParseAuthoritatives(inFrame, iAdditnl)
---	end
-	
+	--	if 0 < iAuthorit then
+			
+	--		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
+	--		iIndex  = self:ParseAuthoritatives(inFrame, iAuthorit)
+	--	end
+		
+	--	if 0 < iAdditnl then
+			
+	--		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
+	--		iIndex  = self:ParseAuthoritatives(inFrame, iAdditnl)
+	--	end
+	end
+
 	m_trace:line("")
 	
 	return true

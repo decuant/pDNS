@@ -29,36 +29,70 @@ local m_tDefColours =
 {
 	tSchemeDark =
 	{
-		cColBk0	= palette.Orange,
-		cColFo0	= palette.WhiteSmoke,
-		cColBk1	= palette.Black,
+		cColBk0	= palette.Burlywood2,
+		cColFo0	= palette.Black,
+		cColBk1	= palette.Gray15,
 		cColFo1	= palette.WhiteSmoke,
-		cColBk2	= palette.Gray15,
+		cColBk2	= palette.Gray20,
 		cColFo2	= palette.WhiteSmoke,
-		cColBk3	= palette.Gray40,
+		cColBk3	= palette.Gray15,
 		cColFo3	= palette.Burlywood2,
 		cFail	= palette.OrangeRed,
 		cSucc	= palette.MediumSeaGreen,
-		cLines	= palette.Gray60,
-		CLblBk	= palette.MediumPurple4,
-		CLblFo	= palette.PaleGoldenrod,
+		cLines	= palette.Black,
+		CLblBk	= palette.LightSteelBlue4,
+		CLblFo	= palette.Aquamarine1,
+	},
+
+	tSchemeContrast =
+	{
+		cColBk0	= palette.PaleGreen2,
+		cColFo0	= palette.RoyalBlue4,
+		cColBk1	= palette.LightBlue2,
+		cColFo1	= palette.Black,
+		cColBk2	= palette.LightBlue3,
+		cColFo2	= palette.Black,
+		cColBk3	= palette.Gray20,
+		cColFo3	= palette.Gray70,
+		cFail	= palette.MediumPurple2,
+		cSucc	= palette.Yellow1,
+		cLines	= palette.Gray20,
+		CLblBk	= palette.Brown4,
+		CLblFo	= palette.LightSalmon1,
 	},
 	
-	tSchemePale =
+	tSchemePersia =
 	{
-		cColBk0	= palette.CornflowerBlue,
-		cColFo0	= palette.Blue4,
-		cColBk1	= palette.Gray100,
+		cColBk0	= palette.RoyalBlue3,
+		cColFo0	= palette.Wheat2,
+		cColBk1	= palette.NavajoWhite2,
+		cColFo1	= palette.Gray10,
+		cColBk2	= palette.NavajoWhite3,
+		cColFo2	= palette.Gray10,
+		cColBk3	= palette.Salmon4,
+		cColFo3	= palette.Wheat2,
+		cFail	= palette.Orchid,
+		cSucc	= palette.SkyBlue1,
+		cLines	= palette.Gray60,
+		CLblBk	= palette.Gray75,
+		CLblFo	= palette.Gray45,
+	},
+	
+	tSchemeMatte =
+	{
+		cColBk0	= palette.SlateGray2,
+		cColFo0	= palette.Black,
+		cColBk1	= palette.WhiteSmoke,
 		cColFo1	= palette.Black,
-		cColBk2	= palette.WhiteSmoke,
+		cColBk2	= palette.White,
 		cColFo2	= palette.Black,
-		cColBk3	= palette.Honeydew2,
-		cColFo3	= palette.DodgerBlue4,
-		cFail	= palette.IndianRed,
-		cSucc	= palette.MediumAquamarine,
-		cLines	= palette.Ivory3,
-		CLblBk	= palette.Wheat3,
-		CLblFo	= palette.Ivory1,
+		cColBk3	= palette.WhiteSmoke,
+		cColFo3	= palette.Sienna4,
+		cFail	= palette.IndianRed1,
+		cSucc	= palette.PaleTurquoise3,
+		cLines	= palette.Wheat2,
+		CLblBk	= palette.Wheat1,
+		CLblFo	= palette.Wheat4,
 	},
 }
 
@@ -86,7 +120,7 @@ local m_tDefWinProp =
 local TaskOptions =
 {
 	iTaskInterval	= 35,							-- timer interval
-	iBatchLimit		= 7,							-- max servers per taks
+	iBatchLimit		= 9,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -99,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemePale,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
