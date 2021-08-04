@@ -133,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeContrast,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
