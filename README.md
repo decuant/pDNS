@@ -1,30 +1,36 @@
 #  **pDNS**
 
+
 ## Polling DNS - rel. 0.0.5 (2021/08/01)
 
-A list of DNS servers is presented to the user. For each server an enable/disable flag controls if processing is due.
-Upon running the main backtask, each (enabled) server will be questioned about a URL. Response is in the log file.
+
+A list of DNS servers is presented to the user. Each server can be enabled or disabled. Running the backtask, enabled servers will be questioned about a URL. Response is in the log file.
 
 The application runs with ```Lua 5.4.3```, ```wxWidgets 3.1.5```, ```wxLua 3.1.0.0``` and ```luasocket 3.0-rc1```.
 
 Log files use some UTF8 characters.
 
 
+
 ## Modules
 
 
+
 ### .1 **convert.lua**
+
 
 Download ```nameservers.csv``` from https://public-dns.info/.
 
 Run this script to have the csv file converted to a Lua table, which can be the new servers' list.
 
-There's no settings file, since the script is little.
-
 A list of country codes, grouped by continent, can be used to filter out rows of no interest.
+
+There's no settings file.
+
 
 
 ### .2 **main.lua**
+
 
 Starting the application with the predefined file.
 
@@ -38,7 +44,7 @@ It runs a backtask on the main window timer and tests a batch of servers per tic
 
 The pre-configured ``data/servers.lua`` is the servers' address list in Lua table format.
 
-File ``data/samplehosts.lua`` holds a Lua table of __Hosts for Sampling__, assigned circularly to each new server, thus to make all servers target the same host just provide only that name in the list. Scramble the servers' list, save and reload; this shuffles the host assigned to a server.
+File ``data/samplehosts.lua`` holds a Lua table of __Hosts for Sampling__, assigned circularly to each new server, thus to make all servers target the same host provide only that name in the list. If the list is big scramble the servers' list, save and reload; this shuffles the host assigned to a server.
 
 For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
 
@@ -51,7 +57,9 @@ File ``user.lua`` is a container for plugin functions, it can be modified and re
 The status bar shows counters for: Servers, Enabled, Responding, Not Responding (of which the first 2 are servers and the last 2 are addresses).
 
 
+
 ## Response
+
 
 This is a typical response.
 
@@ -118,7 +126,9 @@ The server replied at the specified ip address, but the reply is a DNS error cod
 ```
 
 
+
 ## Hit Test
+
 
 A basic count of ip address hits is enabled in code at the protocol level. It is dumped into the ``data`` folder and can grow big. Some hosts never change ip address, while others change it every few seconds.
 
@@ -169,7 +179,9 @@ local _hittable =
 
 ## List of changes
 
+
 ### Rel. 0.0.5
+
 
 - Dump protocol statistics (with enable/disable).
 - Added extra check in convert.lua.
@@ -179,7 +191,9 @@ local _hittable =
 - Scramble servers' list.
 - Minimized grid resfresh calls.
 
+
 ### Rel. 0.0.4
+
 
 - Test for valid IP4 address.
 - Modified the window's ini file to support control over the font to use.
@@ -189,7 +203,7 @@ local _hittable =
 
 ## Author
 
-The author can be reached at decuant@gmail.com
+decuant
 
 
 ## License
