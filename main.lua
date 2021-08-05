@@ -15,6 +15,7 @@ local _find		= string.find
 local _gmatch	= string.gmatch
 local _cat		= table.concat
 local _floor	= math.floor
+local _abs		= math.abs
 
 -- ----------------------------------------------------------------------------
 --
@@ -125,6 +126,21 @@ local function OnFuzzyToggle()
 end
 
 -- ----------------------------------------------------------------------------
+-- swap elements around in the servers' list
+--
+local function OnToggleAll()
+--	m_logger:line("OnFuzzyToggle")
+
+	local tServers = m_App.tServers
+	if 0 == #tServers then return end
+
+	for _, server in next, tServers do
+		
+		server.iEnabled = _abs(server.iEnabled - 1)
+	end
+end
+
+-- ----------------------------------------------------------------------------
 -- select servers that have some text in sReference
 -- selection string supports multiple options with ';'
 --
@@ -141,7 +157,7 @@ local function OnFilterByRef(inString)
 	--
 	local tNewList = { }
 	
-	-- check if inServer is not in list
+	-- check if inServer is not in tNewList
 	--
 	Exists = function(inServer)
 		
@@ -166,7 +182,6 @@ local function OnFilterByRef(inString)
 					if not Exists(server) then
 						
 						tNewList[#tNewList + 1] = server
-						
 					end
 				end
 			end
@@ -441,7 +456,7 @@ end
 -- save servers' list to file
 --
 local function SaveServersFile()
-	m_logger:line("SaveServersFile")	
+--	m_logger:line("SaveServersFile")	
 	
 	local sConfigFile = m_Config.sConfigFile
 	
@@ -543,6 +558,7 @@ local function SetupPublic()
 	m_App.RunBatch		= OnRunBatch
 	m_App.Scramble		= OnScramble
 	m_App.FuzzyToggle	= OnFuzzyToggle
+	m_App.ToggleAll		= OnToggleAll
 	m_App.FilterByRef	= OnFilterByRef
 end
 
