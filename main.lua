@@ -6,10 +6,13 @@
 
 local trace		= require("lib.trace")			-- shortcut for tracing
 local mainWin	= require("lib.window")			-- GUI for the application
+local hits  	= require("lib.hittable")
 local DNSFactory= require("lib.dnsclient")		-- DNS client
 local random	= require("lib.random")			-- random number generator
 
 local _frmt		= string.format
+local _find		= string.find
+local _gmatch	= string.gmatch
 local _cat		= table.concat
 local _floor	= math.floor
 
@@ -17,6 +20,11 @@ local _floor	= math.floor
 --
 local m_logger	= trace.new("debug")
 local m_random  = random.new()
+
+-------------------------------------------------------------------------------
+-- crate the statistic table and set the enable flag
+--
+
 
 -- ----------------------------------------------------------------------------
 -- options for the Purge filter
@@ -38,6 +46,7 @@ local m_App =
 	sRelDate 	= "2021/08/01",
 
 	tServers	= { },					-- list of DNS servers
+	hitTest		= nil,					-- hit test counters
 	
 	iCurHost	= 0,					-- index for the next host
 	tSamples	= { },					-- list of sample hosts
@@ -116,10 +125,69 @@ local function OnFuzzyToggle()
 end
 
 -- ----------------------------------------------------------------------------
+-- select servers that have some text in sReference
+-- selection string supports multiple options with ';'
 --
+local function OnFilterByRef(inString)
+--	m_logger:line("OnFilterByRef")
+
+	local tServers = m_App.tServers
+	if 0 == #tServers then return false end
+
+	inString = inString or ""
+	if 0 == #inString then return false end
+	
+	-- list without repetitions
+	--
+	local tNewList = { }
+	
+	-- check if inServer is not in list
+	--
+	Exists = function(inServer)
+		
+		for _, test in next, tNewList do
+			
+			if test == inServer then return true end
+		end
+		
+		return false
+	end		
+
+	-- for each token process all servers
+	--
+	for sToken in _gmatch(inString, "[^;]*") do
+		
+		if 0 < #sToken then
+			
+			for _, server in next, tServers do
+				
+				if _find(server.sReference, sToken, 1, true) then
+					
+					if not Exists(server) then
+						
+						tNewList[#tNewList + 1] = server
+						
+					end
+				end
+			end
+		end
+	end
+	
+	-- check if changed
+	--
+	if 0 < #tNewList then
+		
+		m_App.tServers = tNewList
+		collectgarbage()
+		
+		return true
+	end
+	
+	return false
+end
 
 -- ----------------------------------------------------------------------------
--- run a task for each server in list
+-- run a task for each server in list, up to limit in parameter
 --
 local function OnRunBatch(inLimit)
 --	m_logger:line("OnRunBatch")
@@ -149,15 +217,14 @@ local function OnRunBatch(inLimit)
 		if inLimit == iBatch then break end
 	end
 	
-	-- if idling the flush stats
+	-- if idling then flush stats
 	--
 	if 0 == iBatch then 
 		
-		DnsProtocol:DumpStats()
-		collectgarbage()
+		if m_App.hitTest:backup() then collectgarbage() end
 	end
 	
-	return iLastIndex
+	return iBatch, iLastIndex
 end
 
 -- ----------------------------------------------------------------------------
@@ -422,6 +489,16 @@ local function SetUpApplication()
 	
 	m_random:initialize()
 	
+	-- load the hit test table
+	-- (enable/disable in parameter)
+	--
+	m_App.hitTest = hits.new(true)
+	m_App.hitTest:restore()
+	
+	-- register it globally
+	--
+	_G.m_HitTest = m_App.hitTest
+	
 	return true
 end
 
@@ -466,6 +543,7 @@ local function SetupPublic()
 	m_App.RunBatch		= OnRunBatch
 	m_App.Scramble		= OnScramble
 	m_App.FuzzyToggle	= OnFuzzyToggle
+	m_App.FilterByRef	= OnFilterByRef
 end
 
 -- ----------------------------------------------------------------------------

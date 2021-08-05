@@ -54,11 +54,34 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+local m_sEurope = "(ES);(IT);(CH);(FR);(DE);(NL);(SE);(FI);(NO);(GB);"
+
+-- ----------------------------------------------------------------------------
+--
+local function FilterByRef(inApplication, inText)
+	
+	inApplication.FilterByRef(inText)
+	return true
+end
+
+-- ----------------------------------------------------------------------------
+--
+local function Menu_Modify_FilterEurope(inApplication, inMainWindow)
+	
+	FilterByRef(inApplication, m_sEurope)
+	OnRefreshWindow(inMainWindow)
+
+	return true
+end
+
+-- ----------------------------------------------------------------------------
+--
 local functions =
 {
 	{Menu_Copy_All2Servers, "Make new servers\tCtrl-1",	"Make nameservers-all the new list"},
 	{Menu_Modify_Scramble,	"Scramble list\tCtrl-2",	"Rebuild the list in random order"},
 	{Menu_Modify_FuzzyToggle, "Fuzzy toggle\tCtrl-3",	"Toggle enable in random fashion"},
+	{Menu_Modify_FilterEurope, "Filter Europe\tCtrl-4",	"Only servers in Europe"},
 }
 
 return functions
