@@ -119,8 +119,8 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 45,							-- timer interval
-	iBatchLimit		= 9,							-- max servers per taks
+	iTaskInterval	= 50,							-- timer interval
+	iBatchLimit		= 13,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -133,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeContrast,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -557,19 +557,17 @@ end
 -- uses a simple boolean to avoid re-entry calls
 --
 local function OnTickTimer()
-	
+
 	-- check if it is still running
 	--
 	if m_Mainframe.bReentryLock then return end
 	m_Mainframe.bReentryLock = true
-	
+
 --	m_logger:line("OnTickTimer")
+
+	local iBatch, iLast = m_thisApp.RunBatch(TaskOptions.iBatchLimit)
 	
---	m_Mainframe.iTaskCounter = m_Mainframe.iTaskCounter + 1
-	
-	local iLast = m_thisApp.RunBatch(TaskOptions.iBatchLimit)
-	
-	if 0 < iLast then 
+	if 0 < iBatch and 0 < iLast then 
 		
 		UpdateDisplay()
 		
@@ -579,7 +577,6 @@ local function OnTickTimer()
 		hGrid:ForceRefresh()						-- seldom there's no colour changing
 	end
 
---	SetStatusCounter(m_Mainframe.iTaskCounter)
 	UpdateProgress()
 
 	m_Mainframe.bReentryLock = false

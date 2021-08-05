@@ -10,7 +10,7 @@
 -- ----------------------------------------------------------------------------
 --
 local trace = require("lib.trace")
-local hits  = require("lib.hittable")
+local _		= require("lib.hittable")
 
 local _frmt	= string.format
 local _chr	= string.char
@@ -70,12 +70,6 @@ local function _getSeed()
 	
 	return m_iCurSeed
 end
-
--------------------------------------------------------------------------------
--- crate the statistic table and set the enable flag
---
-local m_HitTest	= hits.new(true)
-m_HitTest:restore()
 
 -------------------------------------------------------------------------------
 --
@@ -340,7 +334,7 @@ function DnsProtocol.ParseAnswers(self, inFrame, inCount)
 			
 			-- increment the hit test
 			--
-			m_HitTest:incKey(self.sUrlReq, sIpAddress)
+			_G.m_HitTest:incKey(self.sUrlReq, sIpAddress)
 			
 			m_trace:line("Assigned Ip address         = " .. sIpAddress)
 			
@@ -417,7 +411,7 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount)
 			
 			-- increment the hit test
 			--
-			m_HitTest:incKey(self.sUrlReq, sIpAddress)
+			_G.m_HitTest:incKey(self.sUrlReq, sIpAddress)
 			
 			m_trace:line("Assigned Ip address         = " .. sIpAddress)
 			
@@ -528,16 +522,14 @@ end
 -- ----------------------------------------------------------------------------
 -- flush the statistic to file
 --
-function DnsProtocol.DumpStats(self)
---	m_trace:line("DumpStats")
+--function DnsProtocol.DumpStats(self)
+----	m_trace:line("DumpStats")
 
-	return m_HitTest:backup()
-end
+--	return m_HitTest:backup()
+--end
 
 -- ----------------------------------------------------------------------------
 --
-_G.DnsProtocol = DnsProtocol
-
 return DnsProtocol
 
 -- ----------------------------------------------------------------------------

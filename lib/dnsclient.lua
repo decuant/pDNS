@@ -39,6 +39,7 @@ local trace		= require("lib.trace")			-- shortcut for tracing
 local _udp		= socket.udp
 local _frmt		= string.format
 local _cat		= table.concat
+local _gmatch	= string.gmatch
 
 -- ----------------------------------------------------------------------------
 -- if the required trace does not exist then allocate a new one
@@ -73,7 +74,7 @@ local function str_testip4(inString)
 	local iNumber
 	local iParts = 0
 	
-	for sToken in string.gmatch(inString, "[^.]*") do
+	for sToken in _gmatch(inString, "[^.]*") do
 		
 		iNumber = tonumber(sToken) or -1
 		
@@ -91,9 +92,9 @@ end
 local CliConsts = 
 {
 	maxSteps	= 5,				-- communication steps
-	maxRetries	= 17, 				-- max retries per step
-	timeout		= 0.0750,			-- step timeout
-	sockDelay	= 0.0001,			-- udp socket timeout
+	maxRetries	= 11, 				-- max retries per step
+	timeout		= 0.150,			-- step timeout
+	sockDelay	= 0.002,			-- udp socket timeout
 }
 
 -------------------------------------------------------------------------------

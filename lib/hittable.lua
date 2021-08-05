@@ -73,7 +73,8 @@ end
 --
 function HitTable.reset(self)
 
-	self.tList	= { }
+	self.tList		= { }
+	self.bModified	= false
 end
 
 -- ----------------------------------------------------------------------------
