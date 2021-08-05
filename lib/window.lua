@@ -29,19 +29,19 @@ local m_tDefColours =
 {
 	tSchemeDark =
 	{
-		cColBk0	= palette.Burlywood2,
-		cColFo0	= palette.Black,
-		cColBk1	= palette.Gray15,
+		cColBk0	= palette.RoyalBlue,
+		cColFo0	= palette.Violet,
+		cColBk1	= palette.Gray10,
 		cColFo1	= palette.WhiteSmoke,
-		cColBk2	= palette.Gray20,
+		cColBk2	= palette.Gray15,
 		cColFo2	= palette.WhiteSmoke,
-		cColBk3	= palette.Gray15,
-		cColFo3	= palette.Burlywood2,
+		cColBk3	= palette.Gray10,
+		cColFo3	= palette.Beige,
 		cFail	= palette.OrangeRed,
 		cSucc	= palette.MediumSeaGreen,
-		cLines	= palette.Black,
+		cLines	= palette.Gray20,
 		CLblBk	= palette.LightSteelBlue4,
-		CLblFo	= palette.Aquamarine1,
+		CLblFo	= palette.LightSteelBlue2,
 	},
 
 	tSchemeContrast =
@@ -56,26 +56,26 @@ local m_tDefColours =
 		cColFo3	= palette.Brown4,
 		cFail	= palette.MediumPurple2,
 		cSucc	= palette.Yellow1,
-		cLines	= palette.Gray20,
-		CLblBk	= palette.WhiteSmoke,
+		cLines	= palette.Gray10,
+		CLblBk	= palette.Gray20,
 		CLblFo	= palette.LightSalmon3,
 	},
 	
-	tSchemePersia =
+	tSchemeIvory =
 	{
-		cColBk0	= palette.RoyalBlue3,
-		cColFo0	= palette.Wheat2,
-		cColBk1	= palette.NavajoWhite2,
+		cColBk0	= palette.MediumAquamarine,
+		cColFo0	= palette.Blue,
+		cColBk1	= palette.Ivory2,
 		cColFo1	= palette.Gray10,
-		cColBk2	= palette.NavajoWhite3,
+		cColBk2	= palette.Ivory3,
 		cColFo2	= palette.Gray10,
-		cColBk3	= palette.Salmon4,
-		cColFo3	= palette.Wheat2,
-		cFail	= palette.Orchid,
+		cColBk3	= palette.Ivory4,
+		cColFo3	= palette.AntiqueWhite,
+		cFail	= palette.Violet,
 		cSucc	= palette.SkyBlue1,
-		cLines	= palette.Gray60,
-		CLblBk	= palette.Gray75,
-		CLblFo	= palette.Gray45,
+		cLines	= palette.Gray50,
+		CLblBk	= palette.Ivory1,
+		CLblFo	= palette.Gray50,
 	},
 	
 	tSchemeMatte =
@@ -120,7 +120,7 @@ local m_tDefWinProp =
 local TaskOptions =
 {
 	iTaskInterval	= 50,							-- timer interval
-	iBatchLimit		= 13,							-- max servers per taks
+	iBatchLimit		= 9,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -133,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeContrast,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -443,14 +443,14 @@ end
 local function SetEnable(inRow, inEnabled)
 --	m_logger:line("SetEnable")	
 
-	local tServer	= m_thisApp.tServers
+	local tServers	= m_thisApp.tServers
 	local tRowsList	= { }
 	
 	if -1 == inRow then
 		
 		-- all rows
 		--		
-		for i=1, #tServer do tRowsList[i] = i end
+		for i=1, #tServers do tRowsList[i] = i end
 	else
 		
 		-- selected row only
@@ -473,9 +473,9 @@ end
 -- ----------------------------------------------------------------------------
 -- toggle the enable/disable flag for the selected rows
 --
-local function OnToggleEnable()
---	m_logger:line("OnToggleEnable")	
-	
+local function OnToggleSelected()
+--	m_logger:line("OnToggleSelected")
+
 	local grid 		= m_Mainframe.hGridDNSList
 	local tSelected = grid:GetSelectedRows():ToLuaTable()
 	local iValue
@@ -490,6 +490,30 @@ local function OnToggleEnable()
 	UpdateDisplay()
 end
 
+-- ----------------------------------------------------------------------------
+-- toggle the enable/disable flag for the selected rows
+--
+local function OnToggleAll()
+	m_logger:line("OnToggleAll")
+
+	m_thisApp.ToggleAll()
+	
+	-- refresh view
+	--
+	ShowServers()
+	UpdateDisplay()
+end
+-- ----------------------------------------------------------------------------
+-- call for the enable/disable all
+--
+local function OnEnableAll(inValue)
+	m_logger:line("OnEnableAll")
+	
+	SetEnable(-1, inValue)
+	
+	ShowServers()
+	UpdateDisplay()	
+end
 -- ----------------------------------------------------------------------------
 -- delete selected rows
 --
@@ -567,7 +591,7 @@ local function OnTickTimer()
 
 	local iBatch, iLast = m_thisApp.RunBatch(TaskOptions.iBatchLimit)
 	
-	if 0 < iBatch and 0 < iLast then 
+	if 0 < iBatch then 
 		
 		UpdateDisplay()
 		
@@ -622,6 +646,8 @@ local function OnCellChanged(event)
 		end
 	end
 end
+
+
 
 -- ----------------------------------------------------------------------------
 -- window size changed
@@ -836,16 +862,17 @@ local function CreateMainWindow(inApplication)
 	local rcMnuImportFile	= NewMenuID()
 	local rcMnuSaveFile		= NewMenuID()
 
-	local rcMnuToggleBkTsk	= NewMenuID()
-	local rcMnuResetCmpltd	= NewMenuID()
-
 	local rcMnuDisableAll   = NewMenuID()
 	local rcMnuEnableAll	= NewMenuID()
-	local rcMnuToggleEn		= NewMenuID()
+	local rcMnuToggleSel	= NewMenuID()
+	local rcMnuToggleAll	= NewMenuID()
 
 	local rcMnuFilter_OK	= NewMenuID()
 	local rcMnuFilter_KO	= NewMenuID()
 	local rcMnuFilter_DEL	= NewMenuID()
+	
+	local rcMnuToggleBkTsk	= NewMenuID()
+	local rcMnuResetCmpltd	= NewMenuID()	
 
 	-- ------------------------------------------------------------------------	
 	-- create a window
@@ -878,7 +905,8 @@ local function CreateMainWindow(inApplication)
 
 	mnuEdit:Append(rcMnuDisableAll,	"Disable all rows\tCtrl-D",	"Each DNS entry will be disabled")
 	mnuEdit:Append(rcMnuEnableAll,	"Enable all rows\tCtrl-E",	"Each DNS entry will be anabled")
-	mnuEdit:Append(rcMnuToggleEn,	"Toggle selected rows\tCtrl-T",	"Toggle enable/disable for selection")
+	mnuEdit:Append(rcMnuToggleSel,	"Toggle selected rows\tCtrl-T",	"Toggle enable/disable for selection")
+	mnuEdit:Append(rcMnuToggleAll,	"Invert all\tCtrl-A",		"Toggle enable/disable for all rows")
 
 	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -935,9 +963,10 @@ local function CreateMainWindow(inApplication)
 	frame:Connect(rcMnuImportFile,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnImportServers)
 	frame:Connect(rcMnuSaveFile,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnSaveServers)
 
-	frame:Connect(rcMnuDisableAll,	wx.wxEVT_COMMAND_MENU_SELECTED, function() SetEnable(-1, 0) end)
-	frame:Connect(rcMnuEnableAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() SetEnable(-1, 1) end)
-	frame:Connect(rcMnuToggleEn,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleEnable)
+	frame:Connect(rcMnuDisableAll,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnEnableAll(0) end)
+	frame:Connect(rcMnuEnableAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnEnableAll(1) end)
+	frame:Connect(rcMnuToggleSel,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleSelected)
+	frame:Connect(rcMnuToggleAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleAll)
 
 	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(Purge.failed) end)
 	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(Purge.verified) end)
