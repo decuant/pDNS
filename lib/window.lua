@@ -39,7 +39,7 @@ local m_tDefColours =
 		cColFo3	= palette.RoyalBlue,
 		cFail	= palette.OrangeRed,
 		cSucc	= palette.MediumSeaGreen,
-		cLines	= palette.Gray15,
+		cLines	= palette.Gray10,
 		CLblBk	= palette.Black,
 		CLblFo	= palette.LightSteelBlue2,
 	},
@@ -52,47 +52,47 @@ local m_tDefColours =
 		cColFo1	= palette.Black,
 		cColBk2	= palette.LightBlue3,
 		cColFo2	= palette.Black,
-		cColBk3	= palette.AntiqueWhite,
-		cColFo3	= palette.Brown4,
+		cColBk3	= palette.SteelBlue4,
+		cColFo3	= palette.LightCyan1,
 		cFail	= palette.MediumPurple2,
 		cSucc	= palette.Yellow1,
-		cLines	= palette.Gray10,
+		cLines	= palette.SteelBlue4,
 		CLblBk	= palette.Gray20,
 		CLblFo	= palette.LightSalmon3,
 	},
 	
 	tSchemeIvory =
 	{
-		cColBk0	= palette.MediumAquamarine,
-		cColFo0	= palette.Blue,
-		cColBk1	= palette.Ivory2,
+		cColBk0	= palette.Orange,
+		cColFo0	= palette.White,
+		cColBk1	= palette.Ivory3,
 		cColFo1	= palette.Gray10,
-		cColBk2	= palette.Ivory3,
+		cColBk2	= palette.Ivory2,
 		cColFo2	= palette.Gray10,
-		cColBk3	= palette.Ivory4,
-		cColFo3	= palette.AntiqueWhite,
+		cColBk3	= palette.Ivory1,
+		cColFo3	= palette.Firebrick,
 		cFail	= palette.Violet,
 		cSucc	= palette.SkyBlue1,
 		cLines	= palette.Gray50,
-		CLblBk	= palette.Ivory1,
-		CLblFo	= palette.Gray50,
+		CLblBk	= palette.Ivory4,
+		CLblFo	= palette.Gray20,
 	},
 	
 	tSchemeMatte =
 	{
 		cColBk0	= palette.SlateGray2,
-		cColFo0	= palette.Black,
-		cColBk1	= palette.WhiteSmoke,
+		cColFo0	= palette.Firebrick,
+		cColBk1	= palette.White,
 		cColFo1	= palette.Black,
-		cColBk2	= palette.White,
+		cColBk2	= palette.WhiteSmoke,
 		cColFo2	= palette.Black,
-		cColBk3	= palette.WhiteSmoke,
-		cColFo3	= palette.Sienna4,
-		cFail	= palette.IndianRed1,
-		cSucc	= palette.PaleTurquoise3,
-		cLines	= palette.Wheat2,
-		CLblBk	= palette.Wheat1,
-		CLblFo	= palette.Wheat4,
+		cColBk3	= palette.LightYellow2,
+		cColFo3	= palette.Black,
+		cFail	= palette.Salmon1,
+		cSucc	= palette.SeaGreen1,
+		cLines	= palette.LightYellow2,
+		CLblBk	= palette.Gray75,
+		CLblFo	= palette.Gray25,
 	},
 }
 
@@ -119,8 +119,8 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 50,							-- timer interval
-	iBatchLimit		= 6,							-- max servers per taks
+	iTaskInterval	= 75,							-- timer interval
+	iBatchLimit		= 11,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -133,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -597,8 +597,12 @@ local function OnTickTimer()
 		
 		local hGrid = m_Mainframe.hGridDNSList
 		
-		hGrid:MakeCellVisible(iLast - 1, 0)
-		hGrid:ForceRefresh()						-- seldom there's no colour changing
+		if not hGrid:IsVisible(iLast - 1, 0) then
+			
+			hGrid:MakeCellVisible(iLast - 1, 0)
+		end
+		
+		hGrid:ForceRefresh()			-- seldom there's no colour changing
 	end
 
 	UpdateProgress()
@@ -730,13 +734,16 @@ local function SetGridStyles(inGrid)
 	
 	local fntCell = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
 							   wx.wxFONTWEIGHT_LIGHT, false, sFontname, wx.wxFONTENCODING_SYSTEM)
+						
+	local fntCellBold = wx.wxFont( iFontSize - 1, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
+							   wx.wxFONTWEIGHT_BOLD, false, sFontname, wx.wxFONTENCODING_SYSTEM)
 
-	local fntLbl  = wx.wxFont( iFontSize - 1, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
+	local fntLbl  = wx.wxFont( iFontSize - 2, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_SLANT,
 							   wx.wxFONTWEIGHT_LIGHT, false, sFontname, wx.wxFONTENCODING_SYSTEM)
 
 	local tAttrs = { }
 
-	tAttrs[1] = wx.wxGridCellAttr(tColors.cColFo0, tColors.cColBk0, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
+	tAttrs[1] = wx.wxGridCellAttr(tColors.cColFo0, tColors.cColBk0, fntCellBold, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
 	tAttrs[2] = wx.wxGridCellAttr(tColors.cColFo1, tColors.cColBk1, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
 	tAttrs[3] = wx.wxGridCellAttr(tColors.cColFo2, tColors.cColBk2, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)
 	tAttrs[4] = wx.wxGridCellAttr(tColors.cColFo3, tColors.cColBk3, fntCell, wx.wxALIGN_CENTRE, wx.wxALIGN_CENTRE)	
@@ -794,7 +801,7 @@ local function OnLoadFunctions()
 	
 	-- create the menu entries
 	--
-	for _, item in next, functions do
+	for i, item in next, functions do
 		
 		local id = NewMenuID()
 		
@@ -813,7 +820,7 @@ local function OnLoadFunctions()
 			return bRet
 		end
 		
-		menuFxs:Append(id, item[2], item[3])
+		menuFxs:Append(id, _frmt("%s\tCtrl-%d", item[2], i), item[3])
 		m_Mainframe.hWindow:Connect(id, wx.wxEVT_COMMAND_MENU_SELECTED, MenuItemCmd)
 	end
 
@@ -921,7 +928,7 @@ local function CreateMainWindow()
 
 	local mnuFunc = wx.wxMenu("", wx.wxMENU_TEAROFF)
 	
-	mnuFunc:Append(rcMnuLoadFxs, "Reload Functions\tCtrl-L", "Load functions.lua, create menu entries")
+	mnuFunc:Append(rcMnuLoadFxs, "Reload functions\tCtrl-L", "Load functions.lua, create menu entries")
 
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -971,6 +978,8 @@ local function CreateMainWindow()
 	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(Purge.failed) end)
 	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(Purge.verified) end)
 	frame:Connect(rcMnuFilter_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
+	
+	frame:Connect(rcMnuLoadFxs, 	wx.wxEVT_COMMAND_MENU_SELECTED,	OnLoadFunctions)
 
 	frame:Connect(rcMnuToggleBkTsk,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() EnableBacktask(not BacktaskRunning()) end)
 	frame:Connect(rcMnuResetCmpltd,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnResetCompleted)

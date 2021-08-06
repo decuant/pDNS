@@ -92,8 +92,8 @@ end
 local CliConsts = 
 {
 	maxSteps	= 5,				-- communication steps
-	maxRetries	= 11, 				-- max retries per step
-	timeout		= 0.150,			-- step timeout
+	maxRetries	= 8, 				-- max retries per step
+	timeout		= 0.250,			-- step timeout
 	sockDelay	= 0.002,			-- udp socket timeout
 }
 
