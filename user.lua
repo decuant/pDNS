@@ -76,12 +76,23 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+local function Menu_Modify_FilterFailing(inApplication, inMainWindow)
+	
+	inApplication.FilterFailing(35)
+	OnRefreshWindow(inMainWindow)
+
+	return true
+end
+
+-- ----------------------------------------------------------------------------
+--
 local functions =
 {
 	{Menu_Copy_All2Servers, "Make new servers\tCtrl-1",	"Make nameservers-all the new list"},
 	{Menu_Modify_Scramble,	"Scramble list\tCtrl-2",	"Rebuild the list in random order"},
 	{Menu_Modify_FuzzyToggle, "Fuzzy toggle\tCtrl-3",	"Toggle enable in random fashion"},
 	{Menu_Modify_FilterEurope, "Filter Europe\tCtrl-4",	"Only servers in Europe"},
+	{Menu_Modify_FilterFailing, "Filter failing\tCtrl-5",	"Match addresses in the failing list"},
 }
 
 return functions

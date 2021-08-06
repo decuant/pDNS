@@ -47,10 +47,13 @@ local m_App =
 	sRelDate 	= "2021/08/01",
 
 	tServers	= { },					-- list of DNS servers
-	hitTest		= nil,					-- hit test counters
+	tHitTest	= nil,					-- hit test counters
+	tFailAddr	= nil,
 	
 	iCurHost	= 0,					-- index for the next host
 	tSamples	= { },					-- list of sample hosts
+	
+	hMainWin	= mainWin,
 }
 
 -- ----------------------------------------------------------------------------
@@ -141,6 +144,44 @@ local function OnToggleAll()
 end
 
 -- ----------------------------------------------------------------------------
+-- swap elements around in the servers' list
+--
+local function OnFilterFailing(inTheresold)
+	m_logger:line("OnFilterFailing")
+
+	local tServers = m_App.tServers
+	if 0 == #tServers then return end
+	
+	local tFailAddr = m_App.tFailAddr
+	if 0 == tFailAddr:count() then return end
+
+	local tList		= tFailAddr.tList
+	local tCompany
+	local iCounter
+	
+	for _, server in next, tServers do
+		
+		tCompany = tList[server.sReference]
+		
+		if tCompany then
+			
+			for i, addr in next, server.tAddresses do
+				
+				iCounter = tCompany[addr.sAddress]
+				
+				if iCounter and inTheresold <= iCounter then
+					
+					m_logger:line("Blanking address: " .. addr.sAddress)
+					
+					server:ChangeAddress(i, "")
+				end
+			end
+			
+		end
+	end
+end
+
+-- ----------------------------------------------------------------------------
 -- select servers that have some text in sReference
 -- selection string supports multiple options with ';'
 --
@@ -199,47 +240,6 @@ local function OnFilterByRef(inString)
 	end
 	
 	return false
-end
-
--- ----------------------------------------------------------------------------
--- run a task for each server in list, up to limit in parameter
---
-local function OnRunBatch(inLimit)
---	m_logger:line("OnRunBatch")
-
-	local tServers	= m_App.tServers
-	local iBatch	= 0
-	local iLastIndex= 0
-
-	-- check each server
-	--
-	for i, tCurrent in next, tServers do
-		
-		if 1 == tCurrent.iEnabled and not tCurrent:HasCompletedAll() then
-			
-			-- cyle it
-			--
-			tCurrent:RunTask()
-			iBatch = iBatch + 1
-			
-			-- status changed
-			--
-			if tCurrent:HasCompletedAll() then iLastIndex = i end
-		end
-		
-		-- check for end of batch
-		--
-		if inLimit == iBatch then break end
-	end
-	
-	-- if idling then flush stats
-	--
-	if 0 == iBatch then 
-		
-		if m_App.hitTest:backup() then collectgarbage() end
-	end
-	
-	return iBatch, iLastIndex
 end
 
 -- ----------------------------------------------------------------------------
@@ -372,6 +372,47 @@ local function DeleteServers(inRowsList)
 end
 
 -- ----------------------------------------------------------------------------
+-- run a task for each server in list, up to limit in parameter
+--
+local function OnRunBatch(inLimit)
+--	m_logger:line("OnRunBatch")
+
+	local tServers	= m_App.tServers
+	local iBatch	= 0
+	local iLastIndex= 0
+
+	-- check each server
+	--
+	for i, tCurrent in next, tServers do
+		
+		if 1 == tCurrent.iEnabled and not tCurrent:HasCompletedAll() then
+			
+			-- cyle it
+			--
+			tCurrent:RunTask()
+			iBatch = iBatch + 1
+			
+			-- status changed
+			--
+			if tCurrent:HasCompletedAll() then iLastIndex = i end
+		end
+		
+		-- check for end of batch
+		--
+		if inLimit == iBatch then break end
+	end
+	
+	-- if idling then flush stats
+	--
+	if 0 == iBatch then 
+		
+		if m_App.tHitTest:backup() then collectgarbage() end
+	end
+	
+	return iBatch, iLastIndex
+end
+
+-- ----------------------------------------------------------------------------
 -- import hosts' list from file
 --
 local function LoadSampleHosts()
@@ -448,6 +489,10 @@ local function ImportServersFromFile()
 		
 		m_App.tServers = tServers
 	end
+	
+	-- automatic blanketing of most erroneous addresses
+	--
+	OnFilterFailing(35)
 
 	return #m_App.tServers
 end
@@ -507,12 +552,19 @@ local function SetUpApplication()
 	-- load the hit test table
 	-- (enable/disable in parameter)
 	--
-	m_App.hitTest = hits.new(true)
-	m_App.hitTest:restore()
-	
-	-- register it globally
+	m_App.tHitTest = hits.new(true, "data\\Hit-Test.lua")
+	m_App.tHitTest:restore()
+
+	-- again, load the purged addresses
 	--
-	_G.m_HitTest = m_App.hitTest
+	m_App.tFailAddr = hits.new(true, "data\\Hit-Fail.lua")
+	m_App.tFailAddr:restore()
+	
+	-- register globally
+	--
+	_G.m_ThisApp	= m_App
+	_G.m_HitTest	= m_App.tHitTest
+	_G.m_FailAddr	= m_App.tFailAddr
 	
 	return true
 end
@@ -524,7 +576,7 @@ end
 local function ShowGUI()
 --	m_logger:line("ShowGUI")
 	
-	mainWin.CreateMainWindow(m_App)
+	mainWin.CreateMainWindow()
 	mainWin.ShowMainWindow()
 end
 
@@ -540,6 +592,9 @@ local function RunApplication()
 	m_logger:open()
 
 	if SetUpApplication() then ShowGUI() end
+
+	m_App.tHitTest:backup()
+	m_App.tFailAddr:backup()
 
 	m_logger:line(m_App.sAppName .. " terminated")
 
@@ -560,6 +615,7 @@ local function SetupPublic()
 	m_App.FuzzyToggle	= OnFuzzyToggle
 	m_App.ToggleAll		= OnToggleAll
 	m_App.FilterByRef	= OnFilterByRef
+	m_App.FilterFailing	= OnFilterFailing
 end
 
 -- ----------------------------------------------------------------------------
