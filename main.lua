@@ -84,6 +84,20 @@ end
 -- ----------------------------------------------------------------------------
 -- swap elements around in the servers' list
 --
+local function OnCheckValid()
+	m_logger:line("OnCheckValid")
+
+	local tServers	= m_App.tServers
+
+	for _, server in next, tServers do
+		
+		if 0 == server.iDnsExpected then server.iEnabled = 0 end
+	end
+end
+
+-- ----------------------------------------------------------------------------
+-- swap elements around in the servers' list
+--
 local function OnScramble()
 --	m_logger:line("OnScramble")
 
@@ -126,6 +140,8 @@ local function OnFuzzyToggle()
 		
 		iIndex = iIndex + _floor(m_random:getBoxed(1, 5))
 	end
+	
+	OnCheckValid()
 end
 
 -- ----------------------------------------------------------------------------
@@ -141,6 +157,8 @@ local function OnToggleAll()
 		
 		server.iEnabled = _abs(server.iEnabled - 1)
 	end
+	
+	OnCheckValid()
 end
 
 -- ----------------------------------------------------------------------------
@@ -176,9 +194,10 @@ local function OnFilterFailing(inTheresold)
 					server:ChangeAddress(i, "")
 				end
 			end
-			
 		end
 	end
+	
+	OnCheckValid()
 end
 
 -- ----------------------------------------------------------------------------
@@ -254,6 +273,8 @@ local function PurgeServers(inWhich)
 	local tResult	= { }
 	
 	if not next(tServers) then return false end
+	
+	OnCheckValid()
 
 	for _, server in next, tServers do
 		
@@ -322,8 +343,14 @@ local function EnableServers(inRowsList, inEnabled)
 		
 		if server then 
 			
-			server.iEnabled = inEnabled 
-			tReturn[#tReturn + 1] = row
+			if 0 == server.iDnsExpected then 
+				
+				server.iEnabled = 0
+			else
+				
+				server.iEnabled = inEnabled 
+				tReturn[#tReturn + 1] = row
+			end
 		end
 	end
 
@@ -492,7 +519,7 @@ local function ImportServersFromFile()
 	
 	-- automatic blanketing of most erroneous addresses
 	--
-	OnFilterFailing(35)
+	OnFilterFailing(50)
 
 	return #m_App.tServers
 end

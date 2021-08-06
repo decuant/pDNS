@@ -78,7 +78,7 @@ end
 --
 local function Menu_Modify_FilterFailing(inApplication, inMainWindow)
 	
-	inApplication.FilterFailing(35)
+	inApplication.FilterFailing(25)
 	OnRefreshWindow(inMainWindow)
 
 	return true
