@@ -15,18 +15,39 @@ local m_sConfigFile = "data\\Hit-Test.lua"
 
 -- ----------------------------------------------------------------------------
 --
-function HitTable.new(inEnable)
+function HitTable.new(inEnable, inFilename)
 
 	inEnable = inEnable or false
+	inFilename = inFilename or m_sConfigFile
 	
 	local t =
 	{
 		bEnabled	= inEnable,
-		tList		= { },
 		bModified	= false,
+		sConfigFile	= inFilename,
+		
+		tList		= { },
 	}
 
 	return setmetatable(t, HitTable)
+end
+
+-- ----------------------------------------------------------------------------
+--
+function HitTable.count(self)
+	
+	local iCount = 0
+	
+	for _, item in next, self.tList do iCount = iCount + 1 end
+
+	return iCount
+end
+
+-- ----------------------------------------------------------------------------
+--
+function HitTable.getParent(self, inString)
+
+	return self.tList[inString]
 end
 
 -- ----------------------------------------------------------------------------
@@ -110,7 +131,7 @@ function HitTable.backup(self)
 	
 	-- process file
 	--
-	local fd = io.open(m_sConfigFile, "w")
+	local fd = io.open(self.sConfigFile, "w")
 	if not fd then return false end
 	
 	fd:write(_cat(tOutput, "\n"))
@@ -129,11 +150,11 @@ function HitTable.restore(self)
 	
 	if not self.bEnabled then return end
 
-	local fd = io.open(m_sConfigFile, "r")
+	local fd = io.open(self.sConfigFile, "r")
 	if not fd then return end
 	fd:close()
 	
-	local t = dofile(m_sConfigFile)
+	local t = dofile(self.sConfigFile)
 
 	if t then self.tList = t end
 	

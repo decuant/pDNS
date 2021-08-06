@@ -127,8 +127,6 @@ function DnsProtocol.FormatIPQuery(self, inType, inDestUrl)
 	self.iMsgId = _getSeed()
 	self.iType	= inType
 	
---	self.sUrlReq = inDestUrl
-	
 	-- frame header
 	--
 	local tHeader = { }
@@ -295,10 +293,6 @@ function DnsProtocol.ParseBody(self, inFrame)
 	m_trace:line("URL requested               = " .. sURL)
 	m_trace:line("Type of query    (req)      = " .. iType)
 	m_trace:line("Class (protocol) (req)      = " .. iClass)
-	
-	-- need to save the host name given
-	--
---	self.sUrlReq = sURL
 
 	return iIndex
 end
@@ -518,15 +512,6 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 
 	return bReturn
 end
-
--- ----------------------------------------------------------------------------
--- flush the statistic to file
---
---function DnsProtocol.DumpStats(self)
-----	m_trace:line("DumpStats")
-
---	return m_HitTest:backup()
---end
 
 -- ----------------------------------------------------------------------------
 --

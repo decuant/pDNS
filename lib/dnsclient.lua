@@ -236,6 +236,18 @@ function DnsClient.AddAddress(self, inAddress)
 end
 
 -- ----------------------------------------------------------------------------
+--
+function DnsClient.ChangeAddress(self, inIndex, inAddress)
+
+	local tAddress = self.tAddresses[inIndex]
+	if not tAddress then return end
+
+	tAddress:ChangeAddress(inAddress)
+
+	self:UpdateResponse()
+end
+
+-- ----------------------------------------------------------------------------
 -- update the expected response
 --
 function DnsClient.UpdateResponse(self)
@@ -386,6 +398,10 @@ function DnsClient.ProcessStatus(self, inIndex)
 		
 		m_trace:showerr("Too many retries", sAddress)
 		
+		-- increment the hit test
+		--
+		_G.m_FailAddr:incKey(self.sReference, sAddress)
+		
 		-- shutdown
 		--
 		iProtStep = CliConsts.maxSteps - 1
@@ -453,6 +469,10 @@ function DnsClient.ProcessStatus(self, inIndex)
 				
 				m_trace:line("•• Response OK")
 			else
+				
+				-- increment the hit test
+				--
+				_G.m_FailAddr:incKey(self.sReference, sAddress)
 				
 				m_trace:line("•• Server error")
 			end

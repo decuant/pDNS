@@ -29,18 +29,18 @@ local m_tDefColours =
 {
 	tSchemeDark =
 	{
-		cColBk0	= palette.RoyalBlue,
-		cColFo0	= palette.Violet,
+		cColBk0	= palette.SlateBlue1,
+		cColFo0	= palette.Honeydew2,
 		cColBk1	= palette.Gray10,
 		cColFo1	= palette.WhiteSmoke,
 		cColBk2	= palette.Gray15,
 		cColFo2	= palette.WhiteSmoke,
 		cColBk3	= palette.Gray10,
-		cColFo3	= palette.Beige,
+		cColFo3	= palette.RoyalBlue,
 		cFail	= palette.OrangeRed,
 		cSucc	= palette.MediumSeaGreen,
-		cLines	= palette.Gray20,
-		CLblBk	= palette.LightSteelBlue4,
+		cLines	= palette.Gray15,
+		CLblBk	= palette.Black,
 		CLblFo	= palette.LightSteelBlue2,
 	},
 
@@ -120,7 +120,7 @@ local m_tDefWinProp =
 local TaskOptions =
 {
 	iTaskInterval	= 50,							-- timer interval
-	iBatchLimit		= 9,							-- max servers per taks
+	iBatchLimit		= 6,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -591,7 +591,7 @@ local function OnTickTimer()
 
 	local iBatch, iLast = m_thisApp.RunBatch(TaskOptions.iBatchLimit)
 	
-	if 0 < iBatch then 
+	if 0 < iBatch and 0 < iLast then 
 		
 		UpdateDisplay()
 		
@@ -831,7 +831,7 @@ local function ShowMainWindow()
 	
 	OnLoadFunctions()
 	OnImportServers()
-
+	
 	-- run the main loop
 	--
 	wx.wxGetApp():MainLoop()
@@ -848,10 +848,10 @@ end
 -- ----------------------------------------------------------------------------
 -- called to create the main window
 --
-local function CreateMainWindow(inApplication)
+local function CreateMainWindow()
 --	trace:line("CreateMainWindow")
 
-	m_thisApp  = inApplication
+	m_thisApp  = _G.m_ThisApp
 
 	-- read deafult positions for the dialogs
 	--
