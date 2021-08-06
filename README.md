@@ -177,12 +177,43 @@ local _hittable =
 	...
 ```
 
+A similar list traces the number of times a server' s address has failed responding. This file is used at start up to blank addresses in the servers' list.
+
+This is an example.
+
+```
+local _hittable =
+{
+
+	["JSC Kazakhtelecom - Almaty (KZ)"] =
+	{
+		["92.46.44.18"]     = 5,
+		["178.88.161.200"]  = 5,
+	},
+
+	["Evolutio Cloud Enabler S.A. Unipersonal -  (ES)"] =
+	{
+		["212.66.160.2"]    = 9,
+		["212.163.193.3"]   = 9,
+	},
+
+	["Regional TeleSystems Ltd. - Ryazan (RU)"] =
+	{
+		["193.9.242.78"]    = 15,
+		["193.9.240.62"]    = 15,
+	},
+
+```
+
+
 ## List of changes
 
 
 ### Rel. 0.0.5
 
 
+- Filter servers' list using the failing list.
+- Dump list of failing servers' addresses (with enable/disable).
 - Dump protocol statistics (with enable/disable).
 - Added extra check in convert.lua.
 - Added counters in the status bar.
