@@ -467,6 +467,10 @@ function DnsClient.ProcessStatus(self, inIndex)
 				
 				self.iDnsResult = self.iDnsResult + (1 << (inIndex - 1))
 				
+				-- delete the entry if exists in the failing servers list
+				--
+				_G.m_FailAddr:delete(self.sReference, sAddress)
+				
 				m_trace:line("•• Response OK")
 			else
 				

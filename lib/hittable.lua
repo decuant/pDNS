@@ -92,6 +92,34 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+function HitTable.delete(self, inRoot, inKey)
+
+	if not self.bEnabled then return end
+	
+	inRoot = inRoot or ""
+	inKey  = inKey  or ""
+
+	if 0 == #inRoot or 0 == #inKey then return end
+	
+	-- check root
+	--
+	local r = self.tList[inRoot]
+	if not r then return end
+
+	-- check entry and remove
+	--
+	if r[inKey] then r[inKey] = nil end
+	
+	-- check if root empty and remove
+	--
+	if not next(r) then self.tList[inRoot] = nil end
+
+	-- need save
+	--
+	self.bModified = true
+end
+-- ----------------------------------------------------------------------------
+--
 function HitTable.reset(self)
 
 	self.tList		= { }
