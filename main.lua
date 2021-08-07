@@ -85,7 +85,7 @@ end
 -- swap elements around in the servers' list
 --
 local function OnCheckValid()
-	m_logger:line("OnCheckValid")
+--	m_logger:line("OnCheckValid")
 
 	local tServers	= m_App.tServers
 
@@ -165,7 +165,7 @@ end
 -- swap elements around in the servers' list
 --
 local function OnFilterFailing(inTheresold)
-	m_logger:line("OnFilterFailing")
+--	m_logger:line("OnFilterFailing")
 
 	local tServers = m_App.tServers
 	if 0 == #tServers then return end
