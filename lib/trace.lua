@@ -10,7 +10,7 @@
 
 -- ----------------------------------------------------------------------------
 --
-local _fmt	= string.format
+local _frmt	= string.format
 local _rep	= string.rep
 local _byte	= string.byte
 local _cat	= table.concat
@@ -120,7 +120,7 @@ function Trace.line(self, inMessage)
 	
 	self.iLineCounter = self.iLineCounter + 1	
 	
-	self.hFile:write(_fmt("%05d: %s\n", self.iLineCounter, inMessage))
+	self.hFile:write(_frmt("%05d: %s\n", self.iLineCounter, inMessage))
 	self.hFile:flush()
 end
 
@@ -191,7 +191,7 @@ function Trace.stopwatch(self, inMessage)
 
 	self.iTickTimed = _clk()
 
-	local sText = _fmt("%s - %.03f secs", inMessage, (self.iTickTimed - self.iTickStart))
+	local sText = _frmt("%s - %.03f secs", inMessage, (self.iTickTimed - self.iTickStart))
 	
 	-- this allows for intermediate stopwatch
 	--
@@ -210,7 +210,7 @@ function Trace.vector(self, inTable, inLabel)
 
 	for iIndex, aNumber in ipairs(inTable) do
 		
-		tStrings[iIndex + 1] = _fmt("%.04f", aNumber)
+		tStrings[iIndex + 1] = _frmt("%.04f", aNumber)
 	end
 
 	self:line(_cat(tStrings, " ")) 	
@@ -233,9 +233,9 @@ function Trace.dump(self, inTitle, inBuffer)
 	  
 		chunk = inBuffer:sub(iByte, iByte + 15)
 		
-		hFile:write(_fmt('%08X  ', iByte - 1))
+		hFile:write(_frmt('%08X  ', iByte - 1))
 		
-		chunk:gsub('.', function (c) hFile:write(_fmt('%02X ', _byte(c))) end)
+		chunk:gsub('.', function (c) hFile:write(_frmt('%02X ', _byte(c))) end)
 	 
 		hFile:write(_rep(' ', 3 * (16 - #chunk)))
 		hFile:write(' ', chunk:gsub('%c', '.'), "\n") 

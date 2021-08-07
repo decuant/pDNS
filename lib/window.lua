@@ -42,6 +42,7 @@ local m_tDefColours =
 		cLines	= palette.Gray10,
 		CLblBk	= palette.Black,
 		CLblFo	= palette.LightSteelBlue2,
+		cHighlt	= palette.DarkSlateGray2,
 	},
 
 	tSchemeContrast =
@@ -59,6 +60,7 @@ local m_tDefColours =
 		cLines	= palette.SteelBlue4,
 		CLblBk	= palette.Gray20,
 		CLblFo	= palette.LightSalmon3,
+		cHighlt	= palette.MediumOrchid,
 	},
 	
 	tSchemeIvory =
@@ -76,6 +78,7 @@ local m_tDefColours =
 		cLines	= palette.Gray50,
 		CLblBk	= palette.Ivory4,
 		CLblFo	= palette.Gray20,
+		cHighlt	= palette.NavajoWhite3,
 	},
 	
 	tSchemeMatte =
@@ -93,6 +96,7 @@ local m_tDefColours =
 		cLines	= palette.LightYellow2,
 		CLblBk	= palette.Gray75,
 		CLblFo	= palette.Gray25,
+		cHighlt	= palette.Salmon1,
 	},
 }
 
@@ -119,8 +123,8 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 60,							-- timer interval
-	iBatchLimit		=  9,							-- max servers per taks
+	iTaskInterval	= 64,							-- timer interval
+	iBatchLimit		=  8,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -130,16 +134,19 @@ local m_Mainframe =
 {
 	hWindow			= nil,         					-- window handle
 	hNotebook		= nil,							-- notebook handle
+	hEditFind		= nil,
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
 	bReentryLock	= false,						-- avoid re-entrant calling
 	
 	tStatus			= {0, 0, 0, 0},					-- total, enabled, completed, failed
+
+	iSearchStart	= 1,							-- current start for search
 }
 
 -- ----------------------------------------------------------------------------
@@ -410,6 +417,18 @@ end
 -- ----------------------------------------------------------------------------
 -- save the settings file
 --
+local function OnScramble()
+--	m_logger:line("OnScramble")
+
+	m_thisApp.Scramble()
+
+	ShowServers()
+	UpdateDisplay()
+end
+
+-- ----------------------------------------------------------------------------
+-- save the settings file
+--
 local function OnSaveServers()
 --	m_logger:line("OnSaveServers")
 
@@ -419,7 +438,7 @@ local function OnSaveServers()
 end
 
 -- ----------------------------------------------------------------------------
--- read the settings file
+-- read the servers' file
 --
 local function OnImportServers()
 --	m_logger:line("OnImportServers")
@@ -433,7 +452,50 @@ local function OnImportServers()
 	ShowServers()
 	UpdateDisplay()
 end
-	
+
+-- ----------------------------------------------------------------------------
+--
+local function OnSearchText(event)
+--	m_logger:line("OnSearchText")
+
+	-- don't process further if not pressed the command key
+	--
+	if wx.WXK_RETURN ~= event:GetKeyCode() then
+		
+		event:Skip()
+		return
+	end
+
+	local sText 	= m_Mainframe.hEditFind:GetValue()
+	local grid		= m_Mainframe.hGridDNSList
+	local iStart	= m_Mainframe.iSearchStart
+	local bkColor	= m_Mainframe.tColors.cHighlt
+
+	-- get the row containing the text
+	-- might start from 0 if first search
+	-- otherwise go ahead
+	--
+	local iIndex = m_thisApp.IndexFromText(iStart, sText)
+
+	if 0 < iIndex then
+		
+		grid:SetCellBackgroundColour(iIndex - 1, 3, bkColor)
+		grid:MakeCellVisible(iIndex - 1, 3)
+		grid:ForceRefresh()
+		
+		-- advance for next search
+		--
+		m_Mainframe.iSearchStart = iIndex + 1
+		return
+	end
+
+	-- text not found, wrap search
+	--
+	m_Mainframe.iSearchStart = 1
+
+	DlgMessage("End of file.")
+end
+
 -- ----------------------------------------------------------------------------
 -- set the enable flag for all DNS servers or a specific row
 -- here the inRow ca have 2 values:
@@ -494,7 +556,7 @@ end
 -- toggle the enable/disable flag for the selected rows
 --
 local function OnToggleAll()
-	m_logger:line("OnToggleAll")
+--	m_logger:line("OnToggleAll")
 
 	m_thisApp.ToggleAll()
 	
@@ -507,13 +569,27 @@ end
 -- call for the enable/disable all
 --
 local function OnEnableAll(inValue)
-	m_logger:line("OnEnableAll")
+--	m_logger:line("OnEnableAll")
 	
 	SetEnable(-1, inValue)
 	
 	ShowServers()
 	UpdateDisplay()	
 end
+
+-- ----------------------------------------------------------------------------
+-- fuzzy enable servers
+--
+local function OnFuzzyEnable()
+
+	m_thisApp.FuzzyEnable()
+	
+	-- refresh view
+	--
+	ShowServers()
+	UpdateDisplay()
+end
+
 -- ----------------------------------------------------------------------------
 -- delete selected rows
 --
@@ -661,6 +737,11 @@ local function OnSize()
 
 	local sizeClient = m_Mainframe.hWindow:GetClientSize()
 	local sizeBar 	 = m_Mainframe.hStatusBar:GetSize()
+	
+	local hEdit  = m_Mainframe.hEditFind
+	local iWidth = hEdit:GetSize():GetWidth()
+	
+	hEdit:Move(sizeClient:GetWidth() - iWidth, 2)	
 
 	-- space available for the notebook
 	--
@@ -866,9 +947,11 @@ local function CreateMainWindow()
 	-- 
 	local rcMnuImportFile	= NewMenuID()
 	local rcMnuSaveFile		= NewMenuID()
+	local rcMnuScramble		= NewMenuID()
 
 	local rcMnuDisableAll   = NewMenuID()
 	local rcMnuEnableAll	= NewMenuID()
+	local rcMnuEnableFuz	= NewMenuID()
 	local rcMnuToggleSel	= NewMenuID()
 	local rcMnuToggleAll	= NewMenuID()
 
@@ -904,12 +987,16 @@ local function CreateMainWindow()
 
 	mnuFile:Append(rcMnuImportFile,	"Import Servers\tCtrl-I",	"Read the settings file")
 	mnuFile:Append(rcMnuSaveFile,	"Save Servers\tCtrl-S",		"Write the settings file")
+	mnuFile:AppendSeparator()
+	mnuFile:Append(rcMnuScramble,	"Scramble list",			"Scramble the current list")
+	mnuFile:AppendSeparator()
 	mnuFile:Append(wx.wxID_EXIT,    "E&xit\tAlt-X",				"Quit the program")
 
 	local mnuEdit = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
 	mnuEdit:Append(rcMnuDisableAll,	"Disable all rows\tCtrl-D",	"Each DNS entry will be disabled")
 	mnuEdit:Append(rcMnuEnableAll,	"Enable all rows\tCtrl-E",	"Each DNS entry will be anabled")
+	mnuEdit:Append(rcMnuEnableFuz,	"Fuzzy enable\tCtrl-Q", 	"Enable servers at random")
 	mnuEdit:Append(rcMnuToggleSel,	"Toggle selected rows\tCtrl-T",	"Toggle enable/disable for selection")
 	mnuEdit:Append(rcMnuToggleAll,	"Invert all\tCtrl-A",		"Toggle enable/disable for all rows")
 
@@ -937,25 +1024,27 @@ local function CreateMainWindow()
 	local mnuBar = wx.wxMenuBar()
 
 	mnuBar:Append(mnuFile,	"&File")
-	mnuBar:Append(mnuEdit,	"&Edit")
-	mnuBar:Append(mnuFilt,	"&Filter")
+	mnuBar:Append(mnuEdit,	"&Enable")
+	mnuBar:Append(mnuFilt,	"&Delete")
 	mnuBar:Append(mnuCmds,	"&Commands")
-	mnuBar:Append(mnuFunc,  "F&unctions")
+	mnuBar:Append(mnuFunc,  "&Functions")
 	mnuBar:Append(mnuHelp,	"&Help")
 
 	frame:SetMenuBar(mnuBar)
 
 	-- ------------------------------------------------------------------------
 	-- create the bottom status bar
+	-- (wxSB_SUNKEN    0x0003)
 	--
-	local stsBar = frame:CreateStatusBar(6, wx.wxSB_RAISED)
+	local stsBar = frame:CreateStatusBar(6, 0)
 
 	stsBar:SetFont(wx.wxFont(iFontSize - 2, wx.wxFONTFAMILY_DEFAULT, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_NORMAL))      
-	stsBar:SetStatusWidths({20, -1, 75, 50, 50, 50}); 
-
-	stsBar:SetStatusText(m_thisApp.sAppName, 1)  
-	frame:SetStatusBarPane(1)                   	-- this is reserved for the menu
-
+	stsBar:SetStatusWidths({20, -1, 75, 50, 50, 50})
+	stsBar:SetStatusStyles({wx.wxSB_FLAT, 3, wx.wxSB_FLAT, wx.wxSB_FLAT, wx.wxSB_FLAT, wx.wxSB_FLAT})
+	stsBar:SetStatusText(m_thisApp.sAppName, 1)
+	
+	frame:SetStatusBarPane(1)                  -- this is reserved for the menu
+	
 	-- ------------------------------------------------------------------------
 	-- standard event handlers
 	--
@@ -967,9 +1056,11 @@ local function CreateMainWindow()
 	--
 	frame:Connect(rcMnuImportFile,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnImportServers)
 	frame:Connect(rcMnuSaveFile,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnSaveServers)
+	frame:Connect(rcMnuScramble,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnScramble)
 
 	frame:Connect(rcMnuDisableAll,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnEnableAll(0) end)
 	frame:Connect(rcMnuEnableAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnEnableAll(1) end)
+	frame:Connect(rcMnuEnableFuz,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnFuzzyEnable)
 	frame:Connect(rcMnuToggleSel,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleSelected)
 	frame:Connect(rcMnuToggleAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleAll)
 
@@ -1000,6 +1091,22 @@ local function CreateMainWindow()
 	SetGridStyles(newGrid)
 
 	frame:Connect(wx.wxEVT_GRID_CELL_CHANGED, OnCellChanged)		-- connect the event to a handler
+	
+	-- ------------------------------------------------------------------------
+	-- control for finding text
+	--
+	local fntFind = wx.wxFont( iFontSize, wx.wxFONTFAMILY_MODERN, wx.wxFONTSTYLE_NORMAL,
+							   wx.wxFONTWEIGHT_BOLD, false, sFontname, wx.wxFONTENCODING_SYSTEM)
+						
+	local iEdWidth  = 500											-- width of the edit control
+	local iEdHeight = notebook:GetCharHeight() + 6
+
+	local editFind = wx.wxTextCtrl(	notebook, wx.wxID_ANY, "", wx.wxDefaultPosition, 
+									wx.wxSize(iEdWidth, iEdHeight), wx.wxTE_PROCESS_ENTER)
+
+	editFind:SetFont(wx.wxFont(fntFind))
+
+	editFind:Connect(wx.wxEVT_CHAR, OnSearchText)
 
 	-- assign an icon
 	--
@@ -1012,6 +1119,7 @@ local function CreateMainWindow()
 	m_Mainframe.hStatusBar	= stsBar	
 	m_Mainframe.hNotebook	= notebook
 	m_Mainframe.hGridDNSList= newGrid
+	m_Mainframe.hEditFind	= editFind
 end
 
 -- ----------------------------------------------------------------------------

@@ -44,7 +44,9 @@ local _gmatch	= string.gmatch
 -- ----------------------------------------------------------------------------
 -- if the required trace does not exist then allocate a new one
 --
-local m_trace = trace.new("debug")
+local m_trace = trace.new("clients")
+m_trace:open()
+m_trace:enable(false)
 
 -- ----------------------------------------------------------------------------
 -- the protocol class is all static, it's not necessary to allocate
@@ -93,7 +95,7 @@ local CliConsts =
 {
 	maxSteps	= 5,				-- communication steps
 	maxRetries	= 8, 				-- max retries per step
-	timeout		= 0.250,			-- step timeout
+	timeout		= 0.200,			-- step timeout
 	sockDelay	= 0.002,			-- udp socket timeout
 }
 
