@@ -86,10 +86,10 @@ local m_tDefColours =
 		cColFo1	= palette.Black,
 		cColBk2	= palette.WhiteSmoke,
 		cColFo2	= palette.Black,
-		cColBk3	= palette.LightYellow2,
+		cColBk3	= palette.LightSteelBlue2,
 		cColFo3	= palette.Black,
-		cFail	= palette.Salmon1,
-		cSucc	= palette.SeaGreen1,
+		cFail	= palette.PaleVioletRed1,
+		cSucc	= palette.PaleTurquoise2,
 		cLines	= palette.LightYellow2,
 		CLblBk	= palette.Gray75,
 		CLblFo	= palette.Gray25,
@@ -112,15 +112,15 @@ local m_tDefWinProp =
 	window_xy	= {20,	 20},						-- top, left
 	window_wh	= {750,	265},						-- width, height
 	grid_ruler	= {75, 200, 200, 500},				-- size of each column
-	use_font	= {13, "Calibri"},					-- font for grid and tab
+	use_font	= {12, "Calibri"},					-- font for grid and tab
 }
 
 -- ----------------------------------------------------------------------------
 --
 local TaskOptions =
 {
-	iTaskInterval	= 75,							-- timer interval
-	iBatchLimit		= 11,							-- max servers per taks
+	iTaskInterval	= 60,							-- timer interval
+	iBatchLimit		=  9,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -133,7 +133,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -651,8 +651,6 @@ local function OnCellChanged(event)
 	end
 end
 
-
-
 -- ----------------------------------------------------------------------------
 -- window size changed
 --
@@ -777,7 +775,7 @@ end
 local rcMnuLoadFxs	= NewMenuID()
 	
 local function OnLoadFunctions()
-	m_logger:line("OnLoadFunctions")
+--	m_logger:line("OnLoadFunctions")
 
 	-- find the menu "Functions"
 	--
