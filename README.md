@@ -211,7 +211,8 @@ local _hittable =
 
 ### Rel. 0.0.5
 
-
+- Reworked the menu.
+- Added find text in company name.
 - Filter servers' list using the failing list.
 - Dump list of failing servers' addresses (with enable/disable).
 - Dump protocol statistics (with enable/disable).

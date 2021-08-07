@@ -34,26 +34,6 @@ end
 
 -- ----------------------------------------------------------------------------
 --
-local function Menu_Modify_Scramble(inApplication, inMainWindow)
-	
-	inApplication.Scramble()
-	OnRefreshWindow(inMainWindow)
-
-	return true
-end
-
--- ----------------------------------------------------------------------------
---
-local function Menu_Modify_FuzzyToggle(inApplication, inMainWindow)
-	
-	inApplication.FuzzyToggle()
-	OnRefreshWindow(inMainWindow)
-
-	return true
-end
-
--- ----------------------------------------------------------------------------
---
 local m_sEurope = "(ES);(IT);(CH);(FR);(DE);(NL);(SE);(FI);(NO);(GB);"
 
 -- ----------------------------------------------------------------------------
@@ -78,7 +58,7 @@ end
 --
 local function Menu_Modify_FilterFailing(inApplication, inMainWindow)
 	
-	inApplication.FilterFailing(50)
+	inApplication.FilterFailing(25)
 	OnRefreshWindow(inMainWindow)
 
 	return true
@@ -89,8 +69,6 @@ end
 local functions =
 {
 	{Menu_Copy_All2Servers, 	"Make new servers",	"Make nameservers-all the new list"},
-	{Menu_Modify_Scramble,  	"Scramble list",	"Rebuild the list in random order"},
-	{Menu_Modify_FuzzyToggle,	"Fuzzy toggle",		"Toggle enable in random fashion"},
 	{Menu_Modify_FilterEurope,	"Filter Europe",	"Only servers in Europe"},
 	{Menu_Modify_FilterFailing, "Filter failing",	"Match addresses in the failing list"},
 }

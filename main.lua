@@ -82,12 +82,36 @@ local function GetNextHost()
 end
 
 -- ----------------------------------------------------------------------------
+--
+local function IndexFromText(inStart, inText)
+--	m_logger:line("IndexFromText")
+	
+	local tServers = m_App.tServers
+	if not next(tServers) then return -1 end
+	
+	inText = inText or ""
+	if 0 == #inText then return -1 end
+	
+	local sMatch = inText:lower()
+	
+	for i=inStart, #tServers do
+		
+		if _find(tServers[i].sReference:lower(), sMatch, 1, true) then
+			
+			return i
+		end
+	end
+	
+	return -1
+end
+
+-- ----------------------------------------------------------------------------
 -- swap elements around in the servers' list
 --
 local function OnCheckValid()
 --	m_logger:line("OnCheckValid")
 
-	local tServers	= m_App.tServers
+	local tServers = m_App.tServers
 
 	for _, server in next, tServers do
 		
@@ -120,23 +144,27 @@ local function OnScramble()
 end
 
 -- ----------------------------------------------------------------------------
--- swap elements around in the servers' list
+-- enable servers at random
+-- will behave incrementally during session
 --
-local function OnFuzzyToggle()
---	m_logger:line("OnFuzzyToggle")
+local function OnFuzzyEnable()
+--	m_logger:line("OnFuzzyEnable")
 
 	local tServers = m_App.tServers
 	if 0 == #tServers then return end
 
 	-- make a random start point
 	--
-	local iIndex = _floor(m_random:getBoxed(1, 5))
+	local iIndex = _floor(m_random:getBoxed(1, 3))
 
 	-- use a random step
 	--
 	while #tServers >= iIndex do
 		
-		tServers[iIndex].iEnabled = _floor(m_random:getBoxed(0, 2))
+		if 0 == tServers[iIndex].iEnabled then
+			
+			tServers[iIndex].iEnabled = _floor(m_random:getBoxed(0, 2))
+		end
 		
 		iIndex = iIndex + _floor(m_random:getBoxed(1, 5))
 	end
@@ -168,36 +196,46 @@ local function OnFilterFailing(inTheresold)
 --	m_logger:line("OnFilterFailing")
 
 	local tServers = m_App.tServers
-	if 0 == #tServers then return end
+	if not next(tServers) then return 0 end
 	
 	local tFailAddr = m_App.tFailAddr
-	if 0 == tFailAddr:count() then return end
-
 	local tList		= tFailAddr.tList
-	local tCompany
-	local iCounter
+	if not next(tList) then return 0 end
+	
+	-- check each server
+	--
+	local iTouch = 0
 	
 	for _, server in next, tServers do
 		
-		tCompany = tList[server.sReference]
+		-- get the compny name in failing list
+		--
+		local tCompany = tList[server.sReference]
 		
 		if tCompany then
 			
+			-- for each address of the server
+			--
 			for i, addr in next, server.tAddresses do
 				
-				iCounter = tCompany[addr.sAddress]
+				-- get the hits, if any
+				--
+				local iCounter = tCompany[addr.sAddress]
 				
 				if iCounter and inTheresold <= iCounter then
 					
-					m_logger:line("Blanking address: " .. addr.sAddress)
-					
 					server:ChangeAddress(i, "")
+					iTouch = iTouch + 1
 				end
 			end
 		end
 	end
 	
+	-- disable row when a server has not 1 valid ip address
+	--
 	OnCheckValid()
+	
+	return iTouch
 end
 
 -- ----------------------------------------------------------------------------
@@ -519,7 +557,13 @@ local function ImportServersFromFile()
 	
 	-- automatic blanketing of most erroneous addresses
 	--
-	OnFilterFailing(50)
+	local iTheresold = 55
+
+	m_logger:line("Applying cut high filter of: " .. iTheresold)
+
+	local iFilterOut = OnFilterFailing(iTheresold)
+
+	m_logger:line("Suppressed addresses: " .. iFilterOut)
 
 	return #m_App.tServers
 end
@@ -639,10 +683,11 @@ local function SetupPublic()
 	m_App.DeleteServers	= DeleteServers
 	m_App.RunBatch		= OnRunBatch
 	m_App.Scramble		= OnScramble
-	m_App.FuzzyToggle	= OnFuzzyToggle
+	m_App.FuzzyEnable	= OnFuzzyEnable
 	m_App.ToggleAll		= OnToggleAll
 	m_App.FilterByRef	= OnFilterByRef
 	m_App.FilterFailing	= OnFilterFailing
+	m_App.IndexFromText = IndexFromText
 end
 
 -- ----------------------------------------------------------------------------
