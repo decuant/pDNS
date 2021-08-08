@@ -195,13 +195,15 @@ end
 local function OnFilterFailing(inTheresold)
 --	m_logger:line("OnFilterFailing")
 
+	if 0 >= inTheresold then return 0 end
+
 	local tServers = m_App.tServers
 	if not next(tServers) then return 0 end
 	
 	local tFailAddr = m_App.tFailAddr
 	local tList		= tFailAddr.tList
 	if not next(tList) then return 0 end
-	
+
 	-- check each server
 	--
 	local iTouch = 0
@@ -557,9 +559,9 @@ local function ImportServersFromFile()
 	
 	-- automatic blanketing of most erroneous addresses
 	--
-	local iTheresold = 55
+	local iTheresold = 15
 
-	m_logger:line("Applying cut high filter of: " .. iTheresold)
+	m_logger:line("Cut high filter: " .. iTheresold)
 
 	local iFilterOut = OnFilterFailing(iTheresold)
 
