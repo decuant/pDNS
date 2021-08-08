@@ -1090,8 +1090,9 @@ local function CreateMainWindow()
 
 	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
-	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-X",		"Remove non responding hosts")
-	mnuFilt:Append(rcMnuFilter_KO,	"Purge succeeded\tCtrl-Y",	"Remove responding hosts")
+	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-X",		"Remove not responding hosts")
+	mnuFilt:Append(rcMnuFilter_KO,	"Purge responding\tCtrl-Y",	"Remove responding hosts")
+	mnuFilt:AppendSeparator()
 	mnuFilt:Append(rcMnuFilter_DEL,	"Delete selected\tCtrl-Z",	"Build a new list without selected")
 
 	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
