@@ -38,8 +38,8 @@ local trace		= require("lib.trace")			-- shortcut for tracing
 
 local _udp		= socket.udp
 local _frmt		= string.format
-local _cat		= table.concat
 local _gmatch	= string.gmatch
+local _cat		= table.concat
 
 -- ----------------------------------------------------------------------------
 -- if the required trace does not exist then allocate a new one

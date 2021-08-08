@@ -10,6 +10,7 @@ local palette	= require("lib.wxX11Palette")	-- declarations for colors
 
 local _frmt		= string.format
 local _sub		= string.sub
+local _gmatch	= string.gmatch
 local _min		= math.min
 local _max		= math.max
 local _abs		= math.abs
@@ -138,7 +139,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -340,6 +341,26 @@ end
 -- ----------------------------------------------------------------------------
 -- read the settings file
 --
+local function ResetDescBkClr()
+--	m_logger:line("ResetDescBkClr")
+	
+	local hGrid		= m_Mainframe.hGridDNSList
+	local iCount	= hGrid:GetNumberRows()
+	local tDefault	= m_Mainframe.tColors.cColBk3
+	
+	if 0 == iCount then return end
+	
+	for i=1, iCount do
+		
+		hGrid:SetCellBackgroundColour(i - 1, 3, tDefault)
+	end
+	
+	hGrid:ForceRefresh()
+end
+
+-- ----------------------------------------------------------------------------
+-- read the settings file
+--
 local function ShowServers()
 --	m_logger:line("ShowServers")
 	
@@ -424,6 +445,10 @@ local function OnScramble()
 
 	ShowServers()
 	UpdateDisplay()
+	
+	-- text not found, wrap search
+	--
+	m_Mainframe.iSearchStart = 1
 end
 
 -- ----------------------------------------------------------------------------
@@ -455,6 +480,25 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+local function OnFilterByRef(event)
+--	m_logger:line("OnSearchText")
+
+	local sText = m_Mainframe.hEditFind:GetValue()
+	if 0 == #sText then return end
+
+	if m_thisApp.FilterByRef(sText) then
+		
+		ShowServers()
+		UpdateDisplay()
+		
+		-- restart the search from the top
+		--
+		m_Mainframe.iSearchStart = 1
+	end
+end
+
+-- ----------------------------------------------------------------------------
+--
 local function OnSearchText(event)
 --	m_logger:line("OnSearchText")
 
@@ -467,25 +511,58 @@ local function OnSearchText(event)
 	end
 
 	local sText 	= m_Mainframe.hEditFind:GetValue()
-	local grid		= m_Mainframe.hGridDNSList
+	local hGrid		= m_Mainframe.hGridDNSList
 	local iStart	= m_Mainframe.iSearchStart
 	local bkColor	= m_Mainframe.tColors.cHighlt
+	
+	-- at start cancel the old findings
+	--
+	if 1 == iStart then ResetDescBkClr() end
 
 	-- get the row containing the text
 	-- might start from 0 if first search
 	-- otherwise go ahead
 	--
-	local iIndex = m_thisApp.IndexFromText(iStart, sText)
-
-	if 0 < iIndex then
+	local iMinIdx = nil
+	local tTokens = { }
+	
+	-- collect all tokens
+	--
+	for sToken in _gmatch(sText, "[^;]*") do
 		
-		grid:SetCellBackgroundColour(iIndex - 1, 3, bkColor)
-		grid:MakeCellVisible(iIndex - 1, 3)
-		grid:ForceRefresh()
+		if sToken and 0 < #sToken then tTokens[#tTokens + 1] = sToken end
+	end
+	
+	-- parse the list for each token
+	-- and find the lowest index
+	--
+	for i, sToken in next, tTokens do
+		
+		local iIndex = m_thisApp.IndexFromText(iStart, sToken)
+		
+		if 0 < iIndex then
+			
+			if not iMinIdx or iMinIdx > iIndex then 
+			
+				iMinIdx = iIndex
+			end
+		end
+	end
+	
+	-- check the row
+	--
+	if iMinIdx then
+		
+		hGrid:SetCellBackgroundColour(iMinIdx - 1, 3, bkColor)
+--		if not hGrid:IsVisible(iMinIdx - 1, 3) then
+			
+			hGrid:MakeCellVisible(iMinIdx - 1, 3)
+--		end		
+		hGrid:ForceRefresh()
 		
 		-- advance for next search
 		--
-		m_Mainframe.iSearchStart = iIndex + 1
+		m_Mainframe.iSearchStart = iMinIdx + 1
 		return
 	end
 
@@ -735,21 +812,30 @@ local function OnSize()
 
 	if not m_Mainframe.hWindow then return end
 
-	local sizeClient = m_Mainframe.hWindow:GetClientSize()
-	local sizeBar 	 = m_Mainframe.hStatusBar:GetSize()
-	
+	local grid	 = m_Mainframe.hGridDNSList
 	local hEdit  = m_Mainframe.hEditFind
-	local iWidth = hEdit:GetSize():GetWidth()
+	local iHeight= hEdit:GetSize():GetHeight()
+	local iWidth = grid:GetColSize(3)
+	local iLeft  = grid:GetRowLabelSize() + grid:GetColSize(0) + grid:GetColSize(1) + grid:GetColSize(2)
 	
-	hEdit:Move(sizeClient:GetWidth() - iWidth, 2)	
+	-- align the find text window to the company\s description
+	--
+	if 0 < iWidth then
+		
+		hEdit:SetSize(iWidth, iHeight)
+		hEdit:Move(iLeft + 4, 2)
+	end
 
 	-- space available for the notebook
 	--
-	m_Mainframe.hNotebook:SetSize(sizeClient)
+	local size = m_Mainframe.hWindow:GetClientSize()
+	m_Mainframe.hNotebook:SetSize(size)
 
 	-- grids on notebook
 	--
-	local size = m_Mainframe.hNotebook:GetClientSize()
+	local sizeBar = m_Mainframe.hStatusBar:GetSize()
+	
+	size = m_Mainframe.hNotebook:GetClientSize()
 	size:SetWidth(size:GetWidth() - 6)
 	size:SetHeight(size:GetHeight() - sizeBar:GetHeight())
 	
@@ -948,6 +1034,7 @@ local function CreateMainWindow()
 	local rcMnuImportFile	= NewMenuID()
 	local rcMnuSaveFile		= NewMenuID()
 	local rcMnuScramble		= NewMenuID()
+	local rcMnuFilterText	= NewMenuID()
 
 	local rcMnuDisableAll   = NewMenuID()
 	local rcMnuEnableAll	= NewMenuID()
@@ -989,6 +1076,7 @@ local function CreateMainWindow()
 	mnuFile:Append(rcMnuSaveFile,	"Save Servers\tCtrl-S",		"Write the settings file")
 	mnuFile:AppendSeparator()
 	mnuFile:Append(rcMnuScramble,	"Scramble list",			"Scramble the current list")
+	mnuFile:Append(rcMnuFilterText,	"Filter list",				"Filter servers by text")
 	mnuFile:AppendSeparator()
 	mnuFile:Append(wx.wxID_EXIT,    "E&xit\tAlt-X",				"Quit the program")
 
@@ -1057,6 +1145,7 @@ local function CreateMainWindow()
 	frame:Connect(rcMnuImportFile,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnImportServers)
 	frame:Connect(rcMnuSaveFile,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnSaveServers)
 	frame:Connect(rcMnuScramble,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnScramble)
+	frame:Connect(rcMnuFilterText,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnFilterByRef)
 
 	frame:Connect(rcMnuDisableAll,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnEnableAll(0) end)
 	frame:Connect(rcMnuEnableAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnEnableAll(1) end)
@@ -1107,6 +1196,9 @@ local function CreateMainWindow()
 	editFind:SetFont(wx.wxFont(fntFind))
 
 	editFind:Connect(wx.wxEVT_CHAR, OnSearchText)
+	
+	local m_sEurope = "(ES);(IT);(CH);(FR);(DE);(NL);(SE);(FI);(NO);(GB);"
+	editFind:WriteText(m_sEurope)
 
 	-- assign an icon
 	--
