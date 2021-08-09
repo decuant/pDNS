@@ -58,7 +58,7 @@ File ``user.lua`` is a container for plugin functions, it can be modified and re
 
 The status bar shows counters for: Servers, Enabled, Responding, Not Responding (of which the first 2 are servers and the last 2 are addresses).
 
-
+For both Filter and Find functions use ```;``` for multi-keys (as ```(IT);(FR)```).
 
 ## Response
 
