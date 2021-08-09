@@ -50,7 +50,9 @@ For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``.
 
 When purging servers note that a server with 2 addresses having different responding status is a logical failure.
 
-At file load time a filter is applied, it will blank addresses that are found too often in the failing servers' list. Theresold is fixed in code. Failures are consecutive, a success will reset the server's address status.
+At file load time a filter is applied, it will blank addresses that are found too often in the failing servers' list. Theresold is fixed in code. Failures are consecutive, a success will reset the server's address status. Polling servers often will automatically let have a purified list of servers that are almost always responding.
+
+The application does not enforce to save the file if modified.
 
 File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
 
