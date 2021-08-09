@@ -50,7 +50,7 @@ For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``.
 
 When purging servers note that a server with 2 addresses having different responding status is a logical failure.
 
-To make a __Best Responding__ list, load all names servers and enable each in list, then start the backtask and for 3 to 4 times purge the failing servers and reset the completion status.
+At file load time a filter is applied, it will blank addresses that are found too often in the failing servers' list. Theresold is fixed in code. Failures are consecutive, a success will reset the server's address status.
 
 File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
 
