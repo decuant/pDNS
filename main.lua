@@ -14,6 +14,7 @@ local _frmt		= string.format
 local _find		= string.find
 local _gmatch	= string.gmatch
 local _cat		= table.concat
+local _sort		= table.sort
 local _floor	= math.floor
 local _abs		= math.abs
 
@@ -47,6 +48,8 @@ local m_App =
 	sRelDate 	= "2021/08/01",
 
 	tServers	= { },					-- list of DNS servers
+	iColSort	= 0,					-- column used for sorting
+	
 	tHitTest	= nil,					-- hit test counters
 	tFailAddr	= nil,
 	
@@ -120,6 +123,24 @@ local function OnCheckValid()
 end
 
 -- ----------------------------------------------------------------------------
+-- invert first with last
+--
+local function OnInvert()
+--	m_logger:line("OnInvert")
+
+	local tServers	= m_App.tServers
+	local iMax		= _floor(#tServers / 2)
+	local y
+
+	for i=1, iMax do
+		
+		y = #tServers - i + 1
+		
+		tServers[i], tServers[y] = tServers[y], tServers[i]
+	end
+end
+
+-- ----------------------------------------------------------------------------
 -- swap elements around in the servers' list
 --
 local function OnScramble()
@@ -131,16 +152,72 @@ local function OnScramble()
 	local ilower	= iMax + 1
 
 	local tTemp
-	local iSwap
+	local y
 
 	for i=1, iMax do
 		
-		iSwap = _floor(m_random:getBoxed(ilower, iUpper))
+		y = _floor(m_random:getBoxed(ilower, iUpper))
 		
-		tTemp 			= tServers[i]
-		tServers[i]		= tServers[iSwap]
-		tServers[iSwap] = tTemp
+		tServers[i], tServers[y] = tServers[y], tServers[i]
 	end
+	
+	-- not sorted
+	--
+	m_App.iColSort = 0
+end
+
+-- ----------------------------------------------------------------------------
+-- sort the list based on column index
+-- if the list is already sorted then invert it
+--
+local function OnSort(inColumn)
+--	m_logger:line("OnSort")
+
+	_compare2 = function(a, b)
+		
+		if not a.tAddresses[1] or not b.tAddresses[1] then return true end
+		return a.tAddresses[1].sAddress < b.tAddresses[1].sAddress
+	end
+
+	_compare3 = function(a, b)
+		
+		if not a.tAddresses[2] or not b.tAddresses[2] then return true end
+		return a.tAddresses[2].sAddress < b.tAddresses[2].sAddress
+	end
+
+	_compare4 = function(a, b)	
+		
+		return a.sReference < b.sReference 
+	end
+	
+	-- check for an invert
+	--
+	if m_App.iColSort == inColumn then 
+		
+		OnInvert()
+		m_App.iColSort = 0
+		
+		return
+	end
+
+	-- apply the sorting here
+	--
+	local tServers	= m_App.tServers
+
+	if 2 == inColumn then
+		
+		table.sort(tServers, _compare2)
+		
+	elseif 3 == inColumn then
+	
+		table.sort(tServers, _compare3)
+		
+	elseif 4 == inColumn then
+		
+		table.sort(tServers, _compare4)
+	end
+	
+	m_App.iColSort = inColumn
 end
 
 -- ----------------------------------------------------------------------------
@@ -361,6 +438,34 @@ local function PurgeServers(inWhich)
 end
 
 -- ----------------------------------------------------------------------------
+--
+local function OnPurgeInvalid()
+--	m_logger:line("OnPurgeInvalid")
+
+	local tServers	= m_App.tServers
+	local tResult	= { }
+	
+	if not next(tServers) then return 0 end
+	
+	for _, server in next, tServers do
+		
+		if 0 < server.iDnsExpected then tResult[#tResult + 1] = server end
+	end
+	
+	-- if we have results then swap tables
+	--
+	local bModified	= (#m_App.tServers ~= #tResult)
+	
+	if bModified then
+		
+		m_App.tServers = tResult
+		collectgarbage()
+	end
+	
+	return bModified
+end
+
+-- ----------------------------------------------------------------------------
 -- receive a list of rows to update and returns a list of rows updated
 -- note that it's a 1 based list
 --
@@ -557,6 +662,10 @@ local function ImportServersFromFile()
 		m_App.tServers = tServers
 	end
 	
+	-- reset the sort
+	--
+	m_App.iColSort = 0
+	
 	-- automatic blanketing of most erroneous addresses
 	--
 	local iTheresold = 15
@@ -681,10 +790,12 @@ local function SetupPublic()
 	m_App.ImportDNSFile = ImportServersFromFile
 	m_App.SaveDNSFile	= SaveServersFile
 	m_App.EnableServers	= EnableServers
+	m_App.PurgeInvalid	= OnPurgeInvalid
 	m_App.PurgeServers	= PurgeServers
 	m_App.DeleteServers	= DeleteServers
 	m_App.RunBatch		= OnRunBatch
 	m_App.Scramble		= OnScramble
+	m_App.Sort			= OnSort
 	m_App.FuzzyEnable	= OnFuzzyEnable
 	m_App.ToggleAll		= OnToggleAll
 	m_App.FilterByRef	= OnFilterByRef

@@ -211,6 +211,9 @@ local _hittable =
 
 ### Rel. 0.0.5
 
+- Added sorting by column.
+- Call convert.lua to make a fresh servers' list in user menu.
+- Save last used find/filter text in .ini file.
 - Reworked the menus.
 - Added filter/find text function.
 - Filter servers' list using the failing list.

@@ -400,13 +400,24 @@ end
 -- basically if we have some command in the commands' list because of an
 -- override then communicate with the scanner and exit
 --
-local function RunApplication()
+local function RunApplication(...)
 --	m_logger:line("RunApplication")
 	
 	-- open logging and the output file
 	--
 	m_logger:open()
 	
+	-- get the arguments if any
+	--
+	local tArgs = { }
+
+	for _, v in ipairs {...} do tArgs[#tArgs + 1] = v end	
+	
+	if tArgs[1] then  m_Config.sFileInput	= tArgs[1] end
+	if tArgs[2] then  m_Config.sFileOutput	= tArgs[2] end
+	
+	-- process it
+	--
 	if GetLines() and Process() then SaveServers() end
 	
 	m_logger:close()
@@ -415,7 +426,7 @@ end
 -- ----------------------------------------------------------------------------
 -- run it
 --
-RunApplication()
+RunApplication(...)
 
 -- ----------------------------------------------------------------------------
 -- ----------------------------------------------------------------------------

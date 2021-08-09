@@ -18,6 +18,25 @@ local trace		= require("lib.trace")			-- shortcut for tracing
 local m_logger	= trace.new("debug")
 
 -- ----------------------------------------------------------------------------
+-- wait for a process to complete, reads stdout from caller
+-- gives result in statusbar
+--
+local function WaitForComplete(inHFile, inMessage)
+
+	wx.wxBeginBusyCursor()
+	
+	if inHFile then
+		
+		local sStdOut = inHFile:read("l")
+		inHFile:close()
+		
+--		if sStdOut then	SetStatusText(inMessage .. ": " .. sStdOut) end
+	end
+	
+	wx.wxEndBusyCursor()
+end
+
+-- ----------------------------------------------------------------------------
 --
 local function OnRefreshWindow(inWindow)
 	
@@ -27,9 +46,19 @@ end
 
 -- ----------------------------------------------------------------------------
 --
-local function Menu_Copy_All2Servers(inApplication, inMainWindow)
+local function Menu_Convert_Servers(inApplication, inMainWindow)
 	
-	return os.execute("copy /Y data\\nameservers-all.lua data\\servers.lua")
+	local hFile, sError = io.popen("lua ./convert.lua data\\nameservers-all.csv data\\servers.lua", "r")
+
+	if not hFile then
+		
+		sError = sError or ""
+		
+		DlgMessage(_format("Failed to do the conversion\n%s", sError))
+		return
+	end
+	
+	WaitForComplete(hFile, "Made new servers")	
 end
 
 -- ----------------------------------------------------------------------------
@@ -68,7 +97,7 @@ end
 --
 local functions =
 {
-	{Menu_Copy_All2Servers, 	"Make new servers",	"Make nameservers-all the new list"},
+	{Menu_Convert_Servers, 		"Make new servers",	"Make nameservers-all the new list"},
 	{Menu_Modify_FilterEurope,	"Filter Europe",	"Only servers in Europe"},
 	{Menu_Modify_FilterFailing, "Filter failing",	"Match addresses in the failing list"},
 }
