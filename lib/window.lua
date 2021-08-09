@@ -118,6 +118,7 @@ local m_tDefWinProp =
 	window_wh	= {750,	265},						-- width, height
 	grid_ruler	= {75, 200, 200, 500},				-- size of each column
 	use_font	= {12, "Calibri"},					-- font for grid and tab
+	filter		= "",
 }
 
 -- ----------------------------------------------------------------------------
@@ -139,7 +140,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeMatte,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -204,6 +205,9 @@ local function SaveSettings()
 	sLine = _frmt("\tuse_font\t= {%d, \"%s\"},\n", tWinProps.use_font[1], tWinProps.use_font[2])
 	fd:write(sLine)	
 
+	sLine = _frmt("\tfilter\t\t= \"%s\",\n", tWinProps.filter)
+	fd:write(sLine)	
+	
 	fd:write("}\n\nreturn window_ini\n")
 	io.close(fd)
 end
@@ -730,6 +734,19 @@ local function OnPurgeServers(inWhich)
 end
 
 -- ----------------------------------------------------------------------------
+-- reset the DNS client to the start
+--
+local function OnPurgeInvalid(inWhich)
+--	m_logger:line("OnPurgeInvalid")
+
+	if m_thisApp.PurgeInvalid() then
+		
+		ShowServers()
+		UpdateDisplay()
+	end
+end
+
+-- ----------------------------------------------------------------------------
 -- tick timer backtask
 -- uses a simple boolean to avoid re-entry calls
 --
@@ -807,6 +824,31 @@ end
 -- ----------------------------------------------------------------------------
 -- window size changed
 --
+local function OnLabelSelected(event)
+--	m_logger:line("OnLabelSelected")
+
+    local iRow	 = event:GetRow()
+    local iCol	 = event:GetCol()
+
+	-- the Enabled column is excluded
+	--
+	if -1 == iRow and 0 < iCol and 4 > iCol then
+		
+		m_thisApp.Sort(iCol + 1)			-- grid index starts from 0
+		
+		ShowServers()
+		UpdateDisplay()
+		
+	else
+		-- chain default processing
+		--
+		event:Skip()		
+	end
+end
+
+-- ----------------------------------------------------------------------------
+-- window size changed
+--
 local function OnSize()
 --	m_logger:line("OnSize")
 
@@ -867,6 +909,10 @@ local function OnCloseMainframe()
 		
 		tColWidths[i] = grid:GetColSize(i - 1)
 	end
+	
+	-- filter text
+	--
+	local sFilterText = m_Mainframe.hEditFind:GetValue()
 
 	-- update the current settings
 	--
@@ -876,7 +922,8 @@ local function OnCloseMainframe()
 	tWinProps.window_wh = {size:GetWidth(), size:GetHeight()}
 	tWinProps.grid_ruler= tColWidths
 	tWinProps.use_font	= m_Mainframe.tWinProps.use_font				-- just copy over
-
+	tWinProps.filter	= sFilterText
+	
 	m_Mainframe.tWinProps = tWinProps			-- switch structures
 
 	SaveSettings()								-- write to file
@@ -1042,9 +1089,10 @@ local function CreateMainWindow()
 	local rcMnuToggleSel	= NewMenuID()
 	local rcMnuToggleAll	= NewMenuID()
 
-	local rcMnuFilter_OK	= NewMenuID()
-	local rcMnuFilter_KO	= NewMenuID()
-	local rcMnuFilter_DEL	= NewMenuID()
+	local rcMnuPurge_VALID	= NewMenuID()
+	local rcMnuPurge_OK		= NewMenuID()
+	local rcMnuPurge_KO		= NewMenuID()
+	local rcMnuPurge_DEL	= NewMenuID()
 	
 	local rcMnuToggleBkTsk	= NewMenuID()
 	local rcMnuResetCmpltd	= NewMenuID()	
@@ -1090,10 +1138,12 @@ local function CreateMainWindow()
 
 	local mnuFilt = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
-	mnuFilt:Append(rcMnuFilter_OK,	"Purge failed\tCtrl-X",		"Remove not responding hosts")
-	mnuFilt:Append(rcMnuFilter_KO,	"Purge responding\tCtrl-Y",	"Remove responding hosts")
+
+	mnuFilt:Append(rcMnuPurge_VALID,"Purge invalid\tCtrl-W",	"Remove servers without address")
+	mnuFilt:Append(rcMnuPurge_OK,	"Purge failed\tCtrl-X",		"Remove not responding servers")
+	mnuFilt:Append(rcMnuPurge_KO,	"Purge responding\tCtrl-Y",	"Remove responding servers")
 	mnuFilt:AppendSeparator()
-	mnuFilt:Append(rcMnuFilter_DEL,	"Delete selected\tCtrl-Z",	"Build a new list without selected")
+	mnuFilt:Append(rcMnuPurge_DEL,	"Delete selected\tCtrl-Z",	"Build a new list without selected")
 
 	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -1102,7 +1152,7 @@ local function CreateMainWindow()
 
 	local mnuFunc = wx.wxMenu("", wx.wxMENU_TEAROFF)
 	
-	mnuFunc:Append(rcMnuLoadFxs, "Reload functions\tCtrl-L", "Load functions.lua, create menu entries")
+	mnuFunc:Append(rcMnuLoadFxs, "Reload functions\tCtrl-L",	"Load functions.lua, create menu entries")
 
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
@@ -1154,9 +1204,10 @@ local function CreateMainWindow()
 	frame:Connect(rcMnuToggleSel,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleSelected)
 	frame:Connect(rcMnuToggleAll,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnToggleAll)
 
-	frame:Connect(rcMnuFilter_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(Purge.failed) end)
-	frame:Connect(rcMnuFilter_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(Purge.verified) end)
-	frame:Connect(rcMnuFilter_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
+	frame:Connect(rcMnuPurge_VALID,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnPurgeInvalid)
+	frame:Connect(rcMnuPurge_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(Purge.failed) end)
+	frame:Connect(rcMnuPurge_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(Purge.verified) end)
+	frame:Connect(rcMnuPurge_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
 	
 	frame:Connect(rcMnuLoadFxs, 	wx.wxEVT_COMMAND_MENU_SELECTED,	OnLoadFunctions)
 
@@ -1180,7 +1231,8 @@ local function CreateMainWindow()
 	notebook:AddPage(newGrid, "Servers List", true, 0)
 	SetGridStyles(newGrid)
 
-	frame:Connect(wx.wxEVT_GRID_CELL_CHANGED, OnCellChanged)		-- connect the event to a handler
+	frame:Connect(wx.wxEVT_GRID_CELL_CHANGED, 		OnCellChanged)		-- validate input from user
+	frame:Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,	OnLabelSelected)	-- apply sort
 	
 	-- ------------------------------------------------------------------------
 	-- control for finding text
@@ -1198,8 +1250,9 @@ local function CreateMainWindow()
 
 	editFind:Connect(wx.wxEVT_CHAR, OnSearchText)
 	
-	local m_sEurope = "(ES);(IT);(CH);(FR);(DE);(NL);(SE);(FI);(NO);(GB);"
-	editFind:WriteText(m_sEurope)
+	-- assign the last text used in text box
+	--
+	editFind:WriteText(tWinProps.filter)
 
 	-- assign an icon
 	--
