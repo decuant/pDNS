@@ -65,48 +65,94 @@ For both Filter and Find functions use ```;``` for multi-keys in logical OR (as 
 
 This is a typical response.
 
-```
 
-05815: ----- [ Response 2983 ] -----
-00000000  0B A7 81 80 00 01 00 03 00 00 00 00 0A 73 61 74  .?.?.........sat
-00000010  65 6C 6C 69 74 65 73 03 70 72 6F 00 00 01 00 01  ellites.pro.....
-00000020  C0 0C 00 01 00 01 00 00 01 2C 00 04 68 1A 03 0E  ?........,..h...
-00000030  C0 0C 00 01 00 01 00 00 01 2C 00 04 AC 43 44 B4  ?........,..?CD?
-00000040  C0 0C 00 01 00 01 00 00 01 2C 00 04 68 1A 02 0E  ?........,..h...
-05816: Recursion desired           = 1
-05817: Truncation flag             = 0
-05818: Authoritative answer flag   = 0
-05819: Opcode                      = 0
-05820: Query/Response flag         = 1
-05821: Return code                 = 0
-05822: Recursion available         = 1
-05823: Questions count             = 1
-05824: Answers count               = 3
-05825: Authoritative servers count = 0
-05826: Additional records count    = 0
-05827: URL requested               = satellites.pro
-05828: Type of query    (req)      = 1
-05829: Class (protocol) (req)      = 1
-05830: 
-05831: Pointer value               = 0x0c
-05832: Type of query    (ans)      = 1
-05833: Class (protocol) (ans)      = 1
-05834: Time to live                = 300
-05835: Record lenght               = 4
-05836: Assigned Ip address         = 104.26.3.14
-05837: Pointer value               = 0x0c
-05838: Type of query    (ans)      = 1
-05839: Class (protocol) (ans)      = 1
-05840: Time to live                = 300
-05841: Record lenght               = 4
-05842: Assigned Ip address         = 172.67.68.180
-05843: Pointer value               = 0x0c
-05844: Type of query    (ans)      = 1
-05845: Class (protocol) (ans)      = 1
-05846: Time to live                = 300
-05847: Record lenght               = 4
-05848: Assigned Ip address         = 104.26.2.14
-05849: 
+```
+05196: ⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻
+05197: Hostname: tineye.com
+05198: 
+05199: ----- [ Response frame ] -----
+00000000  0B 52 81 80 00 01 00 03 00 02 00 0C 06 74 69 6E  .R.?.........tin
+00000010  65 79 65 03 63 6F 6D 00 00 01 00 01 C0 0C 00 01  eye.com.....?...
+00000020  00 01 00 00 01 2C 00 04 68 16 34 8E C0 0C 00 01  .....,..h.4??...
+00000030  00 01 00 00 01 2C 00 04 68 16 35 8E C0 0C 00 01  .....,..h.5??...
+00000040  00 01 00 00 01 2C 00 04 AC 43 15 EE C0 0C 00 02  .....,..?C.?...
+00000050  00 01 00 00 A3 43 00 15 04 65 6D 6D 61 02 6E 73  ....?C...emma.ns
+00000060  0A 63 6C 6F 75 64 66 6C 61 72 65 C0 13 C0 0C 00  .cloudflare?.?..
+00000070  02 00 01 00 00 A3 43 00 06 03 73 69 64 C0 5D C0  .....?C...sid?]?
+00000080  79 00 01 00 01 00 00 F4 E9 00 04 AC 40 21 8F C0  y......?..?@!.?
+00000090  79 00 01 00 01 00 00 F4 E9 00 04 AD F5 3B 8F C0  y......?...?;.?
+000000A0  79 00 01 00 01 00 00 F4 E9 00 04 6C A2 C1 8F C0  y......?..l??.?
+000000B0  58 00 01 00 01 00 01 14 19 00 04 AC 40 20 70 C0  X..........?@ p?
+000000C0  58 00 01 00 01 00 01 14 19 00 04 AD F5 3A 70 C0  X...........?:p?
+000000D0  58 00 01 00 01 00 01 14 19 00 04 6C A2 C0 70 C0  X..........l??p?
+000000E0  79 00 1C 00 01 00 01 19 C4 00 10 2A 06 98 C1 00  y.......?..*.??.
+000000F0  50 00 00 00 00 00 00 AC 40 21 8F C0 79 00 1C 00  P......?@!.?y...
+00000100  01 00 01 19 C4 00 10 26 06 47 00 00 58 00 00 00  ....?..&.G..X...
+00000110  00 00 00 AD F5 3B 8F C0 79 00 1C 00 01 00 01 19  ....?;.?y.......
+00000120  C4 00 10 28 03 F8 00 00 50 00 00 00 00 00 00 6C  ?..(.?..P......l
+00000130  A2 C1 8F C0 58 00 1C 00 01 00 01 47 0A 00 10 28  ??.?X......G...(
+00000140  03 F8 00 00 50 00 00 00 00 00 00 6C A2 C0 70 C0  .?..P......l??p?
+00000150  58 00 1C 00 01 00 01 47 0A 00 10 2A 06 98 C1 00  X......G...*.??.
+00000160  50 00 00 00 00 00 00 AC 40 20 70 C0 58 00 1C 00  P......?@ p?X...
+00000170  01 00 01 47 0A 00 10 26 06 47 00 00 50 00 00 00  ...G...&.G..P...
+00000180  00 00 00 AD F5 3A 70                             ....?:p
+05200: 
+05201: ⭆ Message Header:
+05202: 
+05203: Recursion desired           = 1
+05204: Truncation flag             = 0
+05205: Authoritative answer flag   = 0
+05206: Opcode                      = 0
+05207: Query/Response flag         = 1
+05208: Return code                 = 0
+05209: Recursion available         = 1
+05210: Questions count             = 1
+05211: Answers count               = 3
+05212: Authoritative servers count = 2
+05213: Additional records count    = 12
+05214: URL requested               = tineye.com
+05215: Type of query    (req)      = 1
+05216: Class (protocol) (req)      = 1
+05217: 
+05218: ⭆ Answers:
+05219: 
+05220: Pointer value               = 0x0c
+05221: Type of query    (ans)      = 1
+05222: Class (protocol) (ans)      = 1
+05223: Time to live                = 300
+05224: Record lenght               = 4
+05225: Assigned Ip address         = 104.22.52.142
+05226: 
+05227: Pointer value               = 0x0c
+05228: Type of query    (ans)      = 1
+05229: Class (protocol) (ans)      = 1
+05230: Time to live                = 300
+05231: Record lenght               = 4
+05232: Assigned Ip address         = 104.22.53.142
+05233: 
+05234: Pointer value               = 0x0c
+05235: Type of query    (ans)      = 1
+05236: Class (protocol) (ans)      = 1
+05237: Time to live                = 300
+05238: Record lenght               = 4
+05239: Assigned Ip address         = 172.67.21.238
+05240: 
+05241: 
+05242: ⭆ Authoritatives:
+05243: 
+05244: Pointer value               = 0x0c
+05245: Type of query    (ans)      = 2
+05246: Class (protocol) (ans)      = 1
+05247: Time to live                = 41795
+05248: Record lenght               = 21
+05249: Alias                       = emma.ns.cloudflare.com
+05250: 
+05251: Pointer value               = 0x0c
+05252: Type of query    (ans)      = 2
+05253: Class (protocol) (ans)      = 1
+05254: Time to live                = 41795
+05255: Record lenght               = 6
+05256: Alias                       = sid.ns.cloudflare.com
 ```
 
 Some replies might have more information.
