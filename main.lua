@@ -668,7 +668,7 @@ local function ImportServersFromFile()
 	
 	-- automatic blanketing of most erroneous addresses
 	--
-	local iTheresold = 15
+	local iTheresold = 10
 
 	m_logger:line("Cut high filter: " .. iTheresold)
 
@@ -780,7 +780,9 @@ local function RunApplication()
 
 	m_logger:line(m_App.sAppName .. " terminated")
 
-	m_logger:close()
+	-- close all streams
+	--
+	m_logger:closeall()
 end
 
 -- ----------------------------------------------------------------------------

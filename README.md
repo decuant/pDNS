@@ -58,7 +58,7 @@ File ``user.lua`` is a container for plugin functions, it can be modified and re
 
 The status bar shows counters for: Servers, Enabled, Responding, Not Responding (of which the first 2 are servers and the last 2 are addresses).
 
-For both Filter and Find functions use ```;``` for multi-keys (as ```(IT);(FR)```).
+For both Filter and Find functions use ```;``` for multi-keys in logical OR (as ```(IT);(FR)```).
 
 ## Response
 
@@ -213,6 +213,8 @@ local _hittable =
 
 ### Rel. 0.0.5
 
+- Flush all open log streams at close.
+- Protocol parsing at authoritatives.
 - Added sorting by column.
 - Call convert.lua to make a fresh servers' list in user menu.
 - Save last used find/filter text in .ini file.
