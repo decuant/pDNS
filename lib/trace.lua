@@ -60,6 +60,16 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+function Trace.closeall(self)
+	
+	for _, trace in next, m_TList do
+		
+		trace:close()
+	end
+end
+
+-- ----------------------------------------------------------------------------
+--
 function Trace.skip(self, inObject)
 	
 	if not self.bEnabled then return true end
@@ -82,6 +92,8 @@ end
 -- returns the success of the operation
 --
 function Trace.open(self)
+	
+	if not self.bEnabled then return false end
 	
 	-- check if already opened
 	--

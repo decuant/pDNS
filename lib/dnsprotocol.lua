@@ -22,6 +22,7 @@ local _byte	= string.byte
 -- if the required trace does not exist then allocate a new one
 --
 local m_trace = trace.new("protocol")
+m_trace:enable(true)
 m_trace:open()
 
 -------------------------------------------------------------------------------
@@ -177,6 +178,8 @@ end
 --
 function DnsProtocol.ParseHeader(self, inFrame, inMatchId)
 --	m_trace:line("ParseHeader")
+
+	self:TraceHeader("Message Header")
 	
 	local iId = _byte(_sub(inFrame, 1, 1)) * 256 + _byte(_sub(inFrame, 2, 2))
 
@@ -236,7 +239,7 @@ function DnsProtocol.ParseInfo(self, inFrame, iIndex)
 	local iPtr =  _byte(_sub(inFrame, iIndex + 0, iIndex + 0))
 	iIndex = iIndex + 1
 	
-	local iPAddr =  _byte(_sub(inFrame, iIndex + 0, iIndex + 0))
+	local iPtr =  _byte(_sub(inFrame, iIndex + 0, iIndex + 0))
 	iIndex = iIndex + 1
 	
 	local iType =  _byte(_sub(inFrame, iIndex, iIndex)) * 256 + _byte(_sub(inFrame, iIndex + 1, iIndex + 1))	
@@ -254,24 +257,28 @@ function DnsProtocol.ParseInfo(self, inFrame, iIndex)
 	local iRLen =  _byte(_sub(inFrame, iIndex, iIndex)) * 256 + _byte(_sub(inFrame, iIndex + 1, iIndex + 1))	
 	iIndex = iIndex + 2
 
-	m_trace:line("Pointer value               = " .. _frmt("0x%02x", iPAddr))
-	m_trace:line("Type of query    (ans)      = " .. iType)
-	m_trace:line("Class (protocol) (ans)      = " .. iClass)
-	m_trace:line("Time to live                = " .. iTTL)
-	m_trace:line("Record lenght               = " .. iRLen)
+	m_trace:line("Pointer value               = " .. _frmt("0x%02x", iPtr))
 	
-	return iRLen, iType, iIndex	
+	if 0x00 ~= iPtr then
+		
+		m_trace:line("Type of query    (ans)      = " .. iType)
+		m_trace:line("Class (protocol) (ans)      = " .. iClass)
+		m_trace:line("Time to live                = " .. iTTL)
+		m_trace:line("Record lenght               = " .. iRLen)
+	end
+	
+	return iPtr, iRLen, iType, iIndex	
 end
 
 -- ----------------------------------------------------------------------------
 -- parse the received message's body
 --
-function DnsProtocol.ParseBody(self, inFrame)
+function DnsProtocol.ParseBody(self, inFrame, inIndex)
 --	m_trace:line("ParseBody")
 
 	local tUrl = { }									-- build the url string
-	local iIndex  = 2
-	local iLenght = _byte(_sub(inFrame, 1, 1))
+	local iIndex  = inIndex + 1
+	local iLenght = _byte(_sub(inFrame, inIndex, inIndex))
 
 	while 0 < iLenght do
 		
@@ -298,64 +305,111 @@ function DnsProtocol.ParseBody(self, inFrame)
 end
 
 -- ----------------------------------------------------------------------------
+-- get the IP out of the buffer
+--
+function DnsProtocol.GetIP4Addr(self, inFrame, inRLen, inIndex)
+
+	local tIpParts	= { }
+	local iIndex 	= inIndex
+	local iRLen 	= inRLen
+	
+	-- check lenght
+	--
+	if #inFrame < (iIndex + iRLen - 1) then return iIndex, "OVERFLOW" end
+	
+	-- get the parts
+	--
+	for i=1, iRLen do
+		
+		tIpParts[i] = tostring(_byte(_sub(inFrame, iIndex + i - 1, iIndex + i - 1)))
+	end
+	
+	iIndex = iIndex + iRLen
+	
+	return iIndex, _cat(tIpParts, ".")
+end
+
+-- ----------------------------------------------------------------------------
+-- get the alias url out of the buffer
+--
+function DnsProtocol.GetURL(self, inFrame, inIndex)
+	
+	local tUrl	 = { }
+	local iIndex = inIndex
+	local iStop  = nil
+	
+	local iLenght = _byte(_sub(inFrame, iIndex, iIndex))
+	iIndex = iIndex + 1
+	
+	while 0 < iLenght do
+		
+		tUrl[#tUrl + 1] = _sub(inFrame, iIndex, iIndex + iLenght - 1)
+		iIndex = iIndex + iLenght
+		
+		iLenght = _byte(_sub(inFrame, iIndex, iIndex))
+		iIndex  = iIndex + 1
+		
+		-- first string in an alias, get address and rollback
+		--
+		if 0xc0 == iLenght then
+			
+			iStop = iIndex + 1
+			
+			iIndex	= _byte(_sub(inFrame, iIndex, iIndex)) + 1
+			iLenght = _byte(_sub(inFrame, iIndex, iIndex))
+			iIndex  = iIndex + 1
+		end
+		
+		-- something went wrong
+		--
+		if not iLenght then return iIndex, "OVERFLOW" end
+	end
+	
+	-- reassign from where we were
+	--
+	if iStop then iIndex = iStop end
+	
+	return iIndex, _cat(tUrl, ".")
+end
+
+-- ----------------------------------------------------------------------------
 -- parse the answers
 --
-function DnsProtocol.ParseAnswers(self, inFrame, inCount)
+function DnsProtocol.TraceHeader(self, inTitle)
 
+	m_trace:newline("⭆ " .. inTitle .. ":")
 	m_trace:line("")
+end
+
+-- ----------------------------------------------------------------------------
+-- parse the answers
+--
+function DnsProtocol.ParseAnswers(self, inFrame, inCount, inIndex)
+
+	self:TraceHeader("Answers")
 	
 	-- ----------------------
 	-- for each answer
 	--
-	iRLen, iType, iIndex = self:ParseInfo(inFrame, 1)
+	local _, iRLen, iType, iIndex = self:ParseInfo(inFrame, inIndex)
 	
 	while 0 < inCount and 0 < iRLen do
 		
 		-- switch on the type returned
 		--
-		if  1 == iType then
+		if 1 == iType then
 			
-			local sIpAddress = ""
-			local tIpParts	 = { }
-			
-			for i=1, iRLen do
-				
-				tIpParts[i] = tostring(_byte(_sub(inFrame, iIndex + i - 1, iIndex + i - 1)))
-			end
-			iIndex = iIndex + iRLen
-			
-			sIpAddress = _cat(tIpParts, ".")
+			iIndex, sIP4Addr = self:GetIP4Addr(inFrame, iRLen, iIndex)
 			
 			-- increment the hit test
 			--
-			_G.m_HitTest:incKey(self.sUrlReq, sIpAddress)
+			_G.m_HitTest:incKey(self.sUrlReq, sIP4Addr)
 			
-			m_trace:line("Assigned Ip address         = " .. sIpAddress)
+			m_trace:line("Assigned Ip address         = " .. sIP4Addr)
 			
 		elseif 5 == iType then
 			
-			local tUrl = { }
-			local sUrl = ""
-			
-			local iLenght = _byte(_sub(inFrame, iIndex, iIndex))
-			iIndex = iIndex + 1
-			
-			while 0 < iLenght do
-				
-				tUrl[#tUrl + 1] = _sub(inFrame, iIndex, iIndex + iLenght - 1)
-				iIndex = iIndex + iLenght
-				
-				iLenght = _byte(_sub(inFrame, iIndex, iIndex))
-				iIndex = iIndex + 1
-				
-				if 0xc0 == iLenght then
-					
-					iIndex = iIndex + 1
-					iLenght = 0
-				end
-			end
-			
-			sUrl = _cat(tUrl, ".")
+			iIndex, sUrl = self:GetURL(inFrame, iIndex)
 			
 			m_trace:line("Alias                       = " .. sUrl)			
 		else
@@ -363,91 +417,74 @@ function DnsProtocol.ParseAnswers(self, inFrame, inCount)
 			m_trace:showerr("Type of query not supported", iType)
 		end
 		
+		m_trace:line("")
+		
 		inCount = inCount - 1
 		
 		if 0 < inCount and iIndex < #inFrame then
 			
-			iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
+			_, iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
 		end
 	end
-	
+
 	return iIndex
 end
 
 -- ----------------------------------------------------------------------------
 -- parse the authoritatives
 --
-function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount)
+function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount, inIndex)
 
-	m_trace:line("")
+	self:TraceHeader("Authoritatives")
 
 	-- ----------------------
 	-- for each answer
 	--
-	iRLen, iType, iIndex = self:ParseInfo(inFrame, 1)
+	local iPtr, iRLen, iType, iIndex = self:ParseInfo(inFrame, inIndex)
 	
 	while 0 < inCount and 0 < iRLen do
 		
+		if #inFrame <= iIndex then 
+			
+			m_trace:showerr("Buffer overflow: ", iIndex)
+			break 
+		end
+		
 		-- switch on the type returned
 		--
-		if  1 == iType then
+		if 0x00 == iPtr then
 			
-			local sIpAddress = ""
-			local tIpParts	 = { }
+			iIndex, sUrl = self:GetURL(inFrame, iIndex - 1)
 			
-			for i=1, iRLen do
-				
-				tIpParts[i] = tostring(_byte(_sub(inFrame, iIndex + i - 1, iIndex + i - 1)))
-			end
-			iIndex = iIndex + iRLen
+			m_trace:line("Alias ⭾                     = " .. sUrl)	
 			
-			sIpAddress = _cat(tIpParts, ".")
+		elseif 1 == iType then
 			
-			-- increment the hit test
-			--
-			_G.m_HitTest:incKey(self.sUrlReq, sIpAddress)
+			iIndex, sIP4Addr = self:GetIP4Addr(inFrame, iRLen, iIndex)
 			
-			m_trace:line("Assigned Ip address         = " .. sIpAddress)
+			m_trace:line("Assigned Ip address         = " .. sIP4Addr)
 			
 		elseif 2 == iType then
 			
-			local tUrl = { }
-			local sUrl = ""
-			
-			local iLenght = _byte(_sub(inFrame, iIndex, iIndex))
-			iIndex = iIndex + 1
-			
-			while 0 < iLenght do
-				
-				tUrl[#tUrl + 1] = _sub(inFrame, iIndex, iIndex + iLenght - 1)
-				iIndex = iIndex + iLenght
-				
-				iLenght = _byte(_sub(inFrame, iIndex, iIndex))
-				iIndex = iIndex + 1
-				
-				if 0xc0 == iLenght then
-					
-					iIndex = iIndex + 1
-					iLenght = 0
-				end
-			end
-			
-			sUrl = _cat(tUrl, ".")
+			iIndex, sUrl = self:GetURL(inFrame, iIndex)
 			
 			m_trace:line("Alias                       = " .. sUrl)			
 		else
 			
 			m_trace:showerr("Type of query not supported", iType)
+			break
 		end
+		
+		m_trace:line("")
 		
 		inCount = inCount - 1
 		
 		if 0 < inCount and iIndex < #inFrame then
 			
-			iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
+			iPtr, iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
 		end
 	end
-	
+
 	return iIndex
 end
 
@@ -463,7 +500,10 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 	if 0 == #inFrame or 0 >= inMatchId then return false end
 
 	self.sUrlReq = inHostname
-	m_trace:dump("Response: " .. inHostname, inFrame)	
+	
+	m_trace:summary("Hostname: " .. inHostname)
+	m_trace:line("")
+	m_trace:dump("Response frame", inFrame)
 
 	-- ----------------------
 	-- Header
@@ -476,26 +516,26 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 		local sMessage = tDnsErrCodes[tAnswers[1] + 1]
 		
 		m_trace:showerr("Return code failure", sMessage)
-	
-	elseif 0 < tAnswers[2] then
-	
+	else
+		
 		-- ----------------------
 		-- Body
 		--
-		local iIndex	= 13
+		local iIndex	= 0x0c + 1
 		local iRLen		= 0
 		local iType		= 0
 		
-		inFrame = _sub(inFrame, iIndex, -1)						-- remove the header
-		iIndex  = self:ParseBody(inFrame)
-		inFrame = _sub(inFrame, iIndex, -1)						-- remove the body
-		iIndex  = self:ParseAnswers(inFrame, tAnswers[2])
+		iIndex  = self:ParseBody(inFrame, iIndex)
 		
-	--	if 0 < tAnswers[3] then
+		if 0 < tAnswers[2] then
 			
-	--		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
-	--		iIndex  = self:ParseAuthoritatives(inFrame, tAnswers[3])
-	--	end
+			iIndex = self:ParseAnswers(inFrame, tAnswers[2], iIndex)
+		end
+		
+		if 0 < tAnswers[3] then
+			
+			iIndex = self:ParseAuthoritatives(inFrame, tAnswers[3], iIndex)
+		end
 		
 	--	if 0 < tAnswers[4] then
 			
@@ -503,12 +543,10 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 	--		iIndex  = self:ParseAuthoritatives(inFrame, tAnswers[4])
 	--	end
 		bReturn = true
-	else
-		
-		m_trace:showerr("No answer available", inHostname)
 	end
 
 	m_trace:line("")
+	m_trace:endsummary()
 
 	return bReturn
 end

@@ -45,8 +45,8 @@ local _cat		= table.concat
 -- if the required trace does not exist then allocate a new one
 --
 local m_trace = trace.new("clients")
+m_trace:enable(true)
 m_trace:open()
-m_trace:enable(false)
 
 -- ----------------------------------------------------------------------------
 -- the protocol class is all static, it's not necessary to allocate
