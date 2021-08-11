@@ -574,13 +574,6 @@ local function OnRunBatch(inLimit)
 		if inLimit == iBatch then break end
 	end
 	
-	-- if idling then flush stats
-	--
-	if 0 == iBatch then 
-		
-		if m_App.tHitTest:backup() then collectgarbage() end
-	end
-	
 	return iBatch, iLastIndex
 end
 
@@ -668,7 +661,7 @@ local function ImportServersFromFile()
 	
 	-- automatic blanketing of most erroneous addresses
 	--
-	local iTheresold = 10
+	local iTheresold = 15
 
 	m_logger:line("Cut high filter: " .. iTheresold)
 

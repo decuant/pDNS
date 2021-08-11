@@ -6,16 +6,11 @@
 --
 -- ----------------------------------------------------------------------------
 
-local trace		= require("lib.trace")			-- shortcut for tracing
---local mainWin	= require("lib.window")			-- GUI for the application
-
---local _frmt		= string.format
---local _cat		= table.concat
---local _floor	= math.floor
+--local trace		= require("lib.trace")			-- shortcut for tracing
 
 -- ----------------------------------------------------------------------------
 --
-local m_logger	= trace.new("debug")
+--local m_logger	= trace.new("debug")
 
 -- ----------------------------------------------------------------------------
 -- wait for a process to complete, reads stdout from caller
@@ -38,16 +33,19 @@ end
 
 -- ----------------------------------------------------------------------------
 --
-local function OnRefreshWindow(inWindow)
-	
-	inWindow.ShowServers()
-	inWindow.UpdateDisplay()
+local function OnRefreshWindow()
+
+	local  thisApp = _G.m_ThisApp
+	local  hManWin = thisApp.hMainWin
+
+	hManWin.ShowServers()
+	hManWin.UpdateDisplay()
 end
 
 -- ----------------------------------------------------------------------------
 --
 local function Menu_Convert_Servers(inApplication, inMainWindow)
-	
+
 	local hFile, sError = io.popen("lua ./convert.lua data\\nameservers-all.csv data\\servers.lua", "r")
 
 	if not hFile then
@@ -57,7 +55,7 @@ local function Menu_Convert_Servers(inApplication, inMainWindow)
 		DlgMessage(_format("Failed to do the conversion\n%s", sError))
 		return
 	end
-	
+
 	WaitForComplete(hFile, "Made new servers")	
 end
 
@@ -67,28 +65,45 @@ local m_sEurope = "(ES);(IT);(CH);(FR);(DE);(NL);(SE);(FI);(NO);(GB);"
 
 -- ----------------------------------------------------------------------------
 --
-local function FilterByRef(inApplication, inText)
-	
-	inApplication.FilterByRef(inText)
+local function FilterByRef(inText)
+
+	local  thisApp = _G.m_ThisApp
+
+	thisApp.FilterByRef(inText)
 	return true
 end
 
 -- ----------------------------------------------------------------------------
 --
-local function Menu_Modify_FilterEurope(inApplication, inMainWindow)
+local function Menu_Modify_FilterEurope()
 	
-	FilterByRef(inApplication, m_sEurope)
-	OnRefreshWindow(inMainWindow)
+	FilterByRef(m_sEurope)
+	OnRefreshWindow()
 
 	return true
 end
 
 -- ----------------------------------------------------------------------------
 --
-local function Menu_Modify_FilterFailing(inApplication, inMainWindow)
+local function Menu_Modify_FilterFailing()
 	
-	inApplication.FilterFailing(25)
-	OnRefreshWindow(inMainWindow)
+	local  thisApp = _G.m_ThisApp
+
+	thisApp.FilterFailing(25)
+	OnRefreshWindow()
+
+	return true
+end
+
+-- ----------------------------------------------------------------------------
+--
+local function Menu_Stats_Trimmer()
+	
+	local tHitTest  = _G.m_HitTest
+	local tFailAddr = _G.m_FailAddr
+	
+	tHitTest:trimmer(10, 200)
+	tFailAddr:trimmer(5, 50)
 
 	return true
 end
@@ -97,9 +112,11 @@ end
 --
 local functions =
 {
-	{Menu_Convert_Servers, 		"Make new servers",	"Make nameservers-all the new list"},
-	{Menu_Modify_FilterEurope,	"Filter Europe",	"Only servers in Europe"},
-	{Menu_Modify_FilterFailing, "Filter failing",	"Match addresses in the failing list"},
+	{Menu_Convert_Servers, 		"Make new servers",		"Make nameservers-all the new list"},
+	{Menu_Modify_FilterEurope,	"Filter Europe",		"Only servers in Europe"},
+	{Menu_Modify_FilterFailing, "Filter failing",		"Match addresses in the failing list"},
+	{nil,						"",						""},
+	{Menu_Stats_Trimmer,		"Statistics trimmer",	"Perform low trim and a high trim on both statistics"},
 }
 
 return functions
