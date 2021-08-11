@@ -102,8 +102,8 @@ local function Menu_Stats_Trimmer()
 	local tHitTest  = _G.m_HitTest
 	local tFailAddr = _G.m_FailAddr
 	
-	tHitTest:trimmer(10, 200)
-	tFailAddr:trimmer(5, 50)
+	tHitTest:trimmer(3)
+	tFailAddr:trimmer(7)
 
 	return true
 end
