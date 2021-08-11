@@ -158,13 +158,12 @@ end
 
 -- ----------------------------------------------------------------------------
 --
-function Trace.summary(self, inMessage)
+function Trace.summary(self, inTitle)
 	
-	if self:skip(inMessage) then return end
+	if self:skip(inTitle) then return end
 	
-	self:line("")
-	self:line(_rep("⸻", 22))
-	self:line(inMessage)
+--	self:newline(_rep("⸻", 22))
+	self:newline("⬤ " .. inTitle)
 end
 
 -- ----------------------------------------------------------------------------
@@ -173,7 +172,17 @@ function Trace.endsummary(self)
 	
 	if self:skip(1) then return end
 
-	self:line(_rep("⸻", 22))
+--	self:line(_rep("⸻", 22))
+end
+
+-- ----------------------------------------------------------------------------
+--
+function Trace.paragraph(self, inTitle)
+	
+	if self:skip(inTitle) then return end
+	
+	self:newline("⭆ " .. inTitle .. ":")
+	self:line("")
 end
 
 -- ----------------------------------------------------------------------------
@@ -239,7 +248,7 @@ function Trace.dump(self, inTitle, inBuffer)
 	local hFile 	= self.hFile
 	local chunk
 	
-	self:line(blockText)
+	self:newline(blockText)
 
 	for iByte=1, #inBuffer, 16 do
 	  

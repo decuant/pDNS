@@ -30,19 +30,19 @@ local m_tDefColours =
 {
 	tSchemeDark =
 	{
-		cColBk0	= palette.SlateBlue1,
-		cColFo0	= palette.Honeydew2,
-		cColBk1	= palette.Gray10,
+		cColBk0	= palette.WhiteSmoke,
+		cColFo0	= palette.DeepPink,
+		cColBk1	= palette.Gray20,
 		cColFo1	= palette.WhiteSmoke,
-		cColBk2	= palette.Gray15,
+		cColBk2	= palette.Gray10,
 		cColFo2	= palette.WhiteSmoke,
-		cColBk3	= palette.Gray10,
-		cColFo3	= palette.RoyalBlue,
-		cFail	= palette.OrangeRed,
-		cSucc	= palette.MediumSeaGreen,
+		cColBk3	= palette.Gray20,
+		cColFo3	= palette.NavajoWhite1,
+		cFail	= palette.VioletRed1,
+		cSucc	= palette.SeaGreen3,
 		cLines	= palette.Gray10,
-		CLblBk	= palette.Black,
-		CLblFo	= palette.LightSteelBlue2,
+		CLblBk	= palette.DarkSlateBlue,
+		CLblFo	= palette.Honeydew2,
 		cHighlt	= palette.DarkSlateGray2,
 	},
 
@@ -86,15 +86,15 @@ local m_tDefColours =
 	{
 		cColBk0	= palette.SlateGray2,
 		cColFo0	= palette.Firebrick,
-		cColBk1	= palette.White,
+		cColBk1	= palette.MediumPurple1,
 		cColFo1	= palette.Black,
-		cColBk2	= palette.WhiteSmoke,
+		cColBk2	= palette.MediumPurple2,
 		cColFo2	= palette.Black,
-		cColBk3	= palette.LightSteelBlue2,
+		cColBk3	= palette.WhiteSmoke,
 		cColFo3	= palette.Black,
 		cFail	= palette.PaleVioletRed1,
-		cSucc	= palette.PaleTurquoise2,
-		cLines	= palette.LightYellow2,
+		cSucc	= palette.MediumAquamarine,
+		cLines	= palette.LightYellow3,
 		CLblBk	= palette.Gray75,
 		CLblFo	= palette.Gray25,
 		cHighlt	= palette.Salmon1,
@@ -125,8 +125,8 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 64,							-- timer interval
-	iBatchLimit		=  8,							-- max servers per taks
+	iTaskInterval	= 50,							-- timer interval
+	iBatchLimit		= 15,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------
@@ -140,7 +140,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeDark,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 
 	hTickTimer		= nil,							-- timer associated with window
@@ -1025,15 +1025,21 @@ local function OnLoadFunctions()
 			-- locals are out of scope here at run time
 			-- use full names to select objects
 			--
-			local bRet = pcall(item[1], m_thisApp, m_Mainframe)
+			local bRet = pcall(item[1])
 			
 			if not bRet then DlgMessage(item[2] .. " failed!") end
 			
 			return bRet
 		end
 		
-		menuFxs:Append(id, _frmt("%s\tCtrl-%d", item[2], i), item[3])
-		m_Mainframe.hWindow:Connect(id, wx.wxEVT_COMMAND_MENU_SELECTED, MenuItemCmd)
+		if 0 < #item[2] then
+			
+			menuFxs:Append(id, _frmt("%s\tCtrl-%d", item[2], i), item[3])
+			m_Mainframe.hWindow:Connect(id, wx.wxEVT_COMMAND_MENU_SELECTED, MenuItemCmd)
+		else
+			
+			menuFxs:AppendSeparator()
+		end
 	end
 
 end

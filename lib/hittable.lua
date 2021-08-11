@@ -128,6 +128,40 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+function HitTable.trimmer(self, inLowerBound, inUpperBound)
+
+	local tRoot		= self.tList
+	local bModified	= false
+	
+	for sKey, parent in next, tRoot do
+		
+		for sLbl, row in next, parent do
+			
+			if inLowerBound and inLowerBound > row then 
+				
+				parent[sLbl] = nil
+				
+				bModified = true
+			end
+			
+			if inUpperBound and inUpperBound < row then 
+				
+				parent[sLbl] = nil
+				
+				bModified = true
+			end			
+		end
+		
+		-- check if parent empty and remove
+		--
+		if not next(parent) then self.tList[sKey] = nil end
+	end
+
+	self.bModified	= bModified
+end
+
+-- ----------------------------------------------------------------------------
+--
 function HitTable.backup(self)
 
 	if not self.bEnabled then return false end

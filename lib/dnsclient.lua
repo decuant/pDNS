@@ -45,7 +45,7 @@ local _cat		= table.concat
 -- if the required trace does not exist then allocate a new one
 --
 local m_trace = trace.new("clients")
-m_trace:enable(true)
+m_trace:enable(false)
 m_trace:open()
 
 -- ----------------------------------------------------------------------------
@@ -94,8 +94,8 @@ end
 local CliConsts = 
 {
 	maxSteps	= 5,				-- communication steps
-	maxRetries	= 8, 				-- max retries per step
-	timeout		= 0.200,			-- step timeout
+	maxRetries	= 11, 				-- max retries per step
+	timeout		= 0.150,			-- step timeout
 	sockDelay	= 0.002,			-- udp socket timeout
 }
 
