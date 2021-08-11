@@ -125,8 +125,8 @@ local m_tDefWinProp =
 --
 local TaskOptions =
 {
-	iTaskInterval	= 50,							-- timer interval
-	iBatchLimit		= 15,							-- max servers per taks
+	iTaskInterval	= 65,							-- timer interval
+	iBatchLimit		= 9,							-- max servers per taks
 }
 
 -- ----------------------------------------------------------------------------

@@ -126,6 +126,13 @@ end
 
 -- ----------------------------------------------------------------------------
 --
+function Trace.isenabled(self)
+	
+	return self.bEnabled
+end
+
+-- ----------------------------------------------------------------------------
+--
 function Trace.line(self, inMessage)
 	
 	if self:skip(inMessage) then return end

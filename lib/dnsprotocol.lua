@@ -235,6 +235,8 @@ end
 --
 function DnsProtocol.ParseInfo(self, inFrame, iIndex)
 --	m_trace:line("ParseInfo")
+
+	if #inFrame < (iIndex + 13) then return 0, 0, 0, (iIndex + 1) end
 	
 	local iPtr =  _byte(_sub(inFrame, iIndex + 0, iIndex + 0))
 	iIndex = iIndex + 1
@@ -276,6 +278,8 @@ end
 function DnsProtocol.ParseBody(self, inFrame, inIndex)
 --	m_trace:line("ParseBody")
 
+	if #inFrame < (inIndex + 13) then return 0, 0, 0, (inIndex + 1) end
+	
 	local tUrl = { }									-- build the url string
 	local iIndex  = inIndex + 1
 	local iLenght = _byte(_sub(inFrame, inIndex, inIndex))
@@ -315,7 +319,7 @@ function DnsProtocol.GetIP4Addr(self, inFrame, inRLen, inIndex)
 	
 	-- check lenght
 	--
-	if #inFrame < (iIndex + iRLen - 1) then return #inFrame, "OVERFLOW" end
+	if #inFrame < (iIndex + iRLen - 1) then return #inFrame + 1, "OVERFLOW" end
 	
 	-- get the parts
 	--
@@ -362,7 +366,7 @@ function DnsProtocol.GetURL(self, inFrame, inIndex)
 		
 		-- something went wrong
 		--
-		if not iLenght then return #inFrame, "OVERFLOW" end
+		if not iLenght then return #inFrame + 1, "OVERFLOW" end
 	end
 	
 	-- reassign from where we were
@@ -378,6 +382,8 @@ end
 function DnsProtocol.ParseAnswers(self, inFrame, inCount, inIndex)
 
 	m_trace:paragraph("Answers")
+	
+	if #inFrame < inIndex then return inIndex end
 	
 	-- ----------------------
 	-- for each answer
@@ -405,14 +411,17 @@ function DnsProtocol.ParseAnswers(self, inFrame, inCount, inIndex)
 			m_trace:line("Alias                       = " .. sUrl)			
 		else
 			
+			iIndex = #inFrame + 1
+			
 			m_trace:showerr("Type of query not supported", iType)
+			break
 		end
 		
 		m_trace:line("")
 		
 		inCount = inCount - 1
 		
-		if 0 < inCount and iIndex < #inFrame then
+		if 0 < inCount then
 			
 			_, iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
 		end
@@ -427,6 +436,8 @@ end
 function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount, inIndex)
 
 	m_trace:paragraph("Authoritatives")
+	
+	if #inFrame < inIndex then return inIndex end
 
 	-- ----------------------
 	-- for each answer
@@ -435,19 +446,13 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount, inIndex)
 	
 	while 0 < inCount and 0 < iRLen do
 		
-		if #inFrame <= iIndex then 
-			
-			m_trace:showerr("Buffer overflow: ", iIndex)
-			break 
-		end
-		
 		-- switch on the type returned
 		--
 		if 0x00 == iPtr then
 			
 			iIndex, sUrl = self:GetURL(inFrame, iIndex - 1)
 			
-			m_trace:line("Alias                   ⭯  = " .. sUrl)
+			m_trace:line("Alias                       = " .. sUrl)
 			
 		elseif 1 == iType then
 			
@@ -466,9 +471,11 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount, inIndex)
 			-- type of record found only once during tests
 			--
 			iIndex, sUrl = self:GetURL(inFrame, iIndex)
-			m_trace:line("Alias                   ⁇   = " .. sUrl)
-
+			m_trace:line("Alias                       = " .. sUrl)
+			
 		else			
+			
+			iIndex = #inFrame + 1
 			
 			m_trace:showerr("Type of query not supported", iType)
 			break
@@ -478,7 +485,71 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount, inIndex)
 		
 		inCount = inCount - 1
 		
-		if 0 < inCount and iIndex < #inFrame then
+		if 0 < inCount then
+			
+			iPtr, iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
+		end
+	end
+
+	return iIndex
+end
+
+-- ----------------------------------------------------------------------------
+-- parse the authoritatives
+--
+function DnsProtocol.ParseAdditionalData(self, inFrame, inCount, inIndex)
+
+	m_trace:paragraph("Additional data")
+	
+	if #inFrame < inIndex then return inIndex end
+
+	-- ----------------------
+	-- for each answer
+	--
+	local iPtr, iRLen, iType, iIndex = self:ParseInfo(inFrame, inIndex)
+	
+	while 0 < inCount and 0 < iRLen do
+		
+		-- switch on the type returned
+		--
+		if 0x00 == iPtr then
+			
+			iIndex, sUrl = self:GetURL(inFrame, iIndex - 1)
+			
+			m_trace:line("Alias                       = " .. sUrl)
+			
+		elseif 1 == iType then
+			
+			iIndex, sIP4Addr = self:GetIP4Addr(inFrame, iRLen, iIndex)
+			
+			m_trace:line("Assigned Ip address         = " .. sIP4Addr)
+			
+		elseif 2 == iType then
+			
+			iIndex, sUrl = self:GetURL(inFrame, iIndex)
+			
+			m_trace:line("Alias                       = " .. sUrl)
+			
+		elseif 6 == iType then
+			
+			-- type of record found only once during tests
+			--
+			iIndex, sUrl = self:GetURL(inFrame, iIndex)
+			
+			m_trace:line("Alias                       = " .. sUrl)
+		else			
+			
+			iIndex = #inFrame + 1
+			
+			m_trace:showerr("Type of query not supported", iType)
+			break
+		end
+		
+		m_trace:line("")
+		
+		inCount = inCount - 1
+		
+		if 0 < inCount then
 			
 			iPtr, iRLen, iType, iIndex = self:ParseInfo(inFrame, iIndex)
 		end
@@ -507,21 +578,15 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 	-- Header
 	--
 	local tAnswers	= self:ParseHeader(inFrame, inMatchId)
+	local iIndex	= 0x0c + 1
 	local bReturn	= false
-	
+
 	if 0 < tAnswers[1] then
 		
 		local sMessage = tDnsErrCodes[tAnswers[1] + 1]
 		
 		m_trace:showerr("Return code failure", sMessage)
 	else
-		
-		-- ----------------------
-		-- Body
-		--
-		local iIndex	= 0x0c + 1
-		local iRLen		= 0
-		local iType		= 0
 		
 		iIndex  = self:ParseBody(inFrame, iIndex)
 		
@@ -530,16 +595,21 @@ function DnsProtocol.ParseMessage(self, inFrame, inMatchId, inHostname)
 			iIndex = self:ParseAnswers(inFrame, tAnswers[2], iIndex)
 		end
 		
-		if 0 < tAnswers[3] then
+		-- perform these 2 steps only if interested
+		--
+		if m_trace:isenabled() then
 			
-			iIndex = self:ParseAuthoritatives(inFrame, tAnswers[3], iIndex)
+			if 0 < tAnswers[3] then
+				
+				iIndex = self:ParseAuthoritatives(inFrame, tAnswers[3], iIndex)
+			end
+			
+			if 0 < tAnswers[4] then
+				
+				iIndex  = self:ParseAdditionalData(inFrame, tAnswers[4], iIndex)
+			end
 		end
 		
-	--	if 0 < tAnswers[4] then
-			
-	--		inFrame = _sub(inFrame, iIndex, -1)					-- remove the body
-	--		iIndex  = self:ParseAuthoritatives(inFrame, tAnswers[4])
-	--	end
 		bReturn = true
 	end
 
