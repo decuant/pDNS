@@ -22,7 +22,7 @@ local _byte	= string.byte
 -- if the required trace does not exist then allocate a new one
 --
 local m_trace = trace.new("protocol")
-m_trace:enable(true)
+m_trace:enable(false)
 m_trace:open()
 
 -------------------------------------------------------------------------------
@@ -447,7 +447,7 @@ function DnsProtocol.ParseAuthoritatives(self, inFrame, inCount, inIndex)
 			
 			iIndex, sUrl = self:GetURL(inFrame, iIndex - 1)
 			
-			m_trace:line("Alias                   ⭯   = " .. sUrl)
+			m_trace:line("Alias                   ⭯  = " .. sUrl)
 			
 		elseif 1 == iType then
 			

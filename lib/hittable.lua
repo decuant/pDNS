@@ -128,7 +128,7 @@ end
 
 -- ----------------------------------------------------------------------------
 --
-function HitTable.trimmer(self, inLowerBound, inUpperBound)
+function HitTable.trimmer(self, inLowerBound)
 
 	local tRoot		= self.tList
 	local bModified	= false
@@ -143,18 +143,16 @@ function HitTable.trimmer(self, inLowerBound, inUpperBound)
 				
 				bModified = true
 			end
-			
-			if inUpperBound and inUpperBound < row then 
-				
-				parent[sLbl] = nil
-				
-				bModified = true
-			end			
 		end
 		
 		-- check if parent empty and remove
 		--
-		if not next(parent) then self.tList[sKey] = nil end
+		if not next(parent) then 
+			
+			self.tList[sKey] = nil
+			
+			bModified = true
+		end
 	end
 
 	self.bModified	= bModified
