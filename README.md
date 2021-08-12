@@ -67,7 +67,6 @@ This is a typical response.
 
 
 ```
-05196: ⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻
 05197: Hostname: tineye.com
 05198: 
 05199: ----- [ Response frame ] -----
@@ -171,7 +170,7 @@ The server replied at the specified ip address, but the reply is a DNS error cod
 
 A basic count of ip address hits is enabled in code at the protocol level. It is dumped into the ``data`` folder and can grow big. Some hosts never change ip address, while others change it every few seconds.
 
-This is an example.
+This is an example of the hits table, grouped by hostname.
 
 ```
 local _hittable =
@@ -230,7 +229,7 @@ The third address looks a bluff. The fourth useless.
 
 A similar list traces the number of times a server' s address has failed responding. This file is used at start up to blank addresses in the servers' list.
 
-This is an example.
+This is an example of the failures table, grouped by company.
 
 ```
 local _hittable =
