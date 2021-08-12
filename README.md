@@ -40,7 +40,7 @@ Starting the backtask to poll each enabled server.
 
 ![Main dialog active](/docs/Main_Dialog2.png)
 
-It runs a backtask on the main window timer and tests a batch of servers per tick. UDP is not supported by wxLua, the program uses ``luasocket`` (on Windows the required filename is ``socket.dll``). Other concurrent implementations are not advisable. This program is not intended for speed benchmarking, but to question servers.
+It runs a backtask on the main window timer and tests a batch of servers per tick. UDP is not supported by wxLua, the program uses ``luasocket`` (on Windows the required filename is ``socket.dll``). This program is not intended for speed benchmarking, but to question servers.
 
 The pre-configured ``data/servers.lua`` is the servers' address list in Lua table format.
 
@@ -155,17 +155,6 @@ This is a typical response.
 05256: Alias                       = sid.ns.cloudflare.com
 ```
 
-The third address looks a bluff. The fourth useless.
-
-```
-	["hostwinds.com"] =
-	{
-		["104.18.16.143"]   = 590,
-		["104.18.17.143"]   = 590,
-		["162.241.226.169"] = 1,
-		["127.0.0.1"]       = 1,
-	},
-```
 
 The server replied at the specified ip address, but the reply is a DNS error code.
 
@@ -177,7 +166,7 @@ The server replied at the specified ip address, but the reply is a DNS error cod
 
 
 
-## Hit Test
+## Hits & Failures counters
 
 
 A basic count of ip address hits is enabled in code at the protocol level. It is dumped into the ``data`` folder and can grow big. Some hosts never change ip address, while others change it every few seconds.
@@ -225,6 +214,18 @@ local _hittable =
 	},
 
 	...
+```
+
+The third address looks a bluff. The fourth useless.
+
+```
+	["hostwinds.com"] =
+	{
+		["104.18.16.143"]   = 590,
+		["104.18.17.143"]   = 590,
+		["162.241.226.169"] = 1,
+		["127.0.0.1"]       = 1,
+	},
 ```
 
 A similar list traces the number of times a server' s address has failed responding. This file is used at start up to blank addresses in the servers' list.
