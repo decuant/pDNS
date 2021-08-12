@@ -10,6 +10,7 @@
 --
 local m_tHostURLs =
 { 	
+	"ns-1335.awsdns-38.org",
 	"worldweather.wmo.int",
 	"barbarianfc.co.uk",
 --	"support.microsoft.com",
@@ -24,8 +25,10 @@ local m_tHostURLs =
 --	"united.com",
 	"root-servers.org",
 --	"time.com",
+	"netflix.com",
 	"wordreference.com",
 	"aljazeera.com",
+	"elementary.io",
 	"opensubtitles.org",
 	"gob.pe",
 	"worldarchery.sport",
@@ -36,7 +39,7 @@ local m_tHostURLs =
 	"dillinger.io",
 	"cygnustelecom.com",
 	"wxwidgets.org",
---	"amtrak.com",
+	"amtrak.com",
 --	"docs.microsoft.com",
 	"rawpedia.rawtherapee.com",
 	"satellites.pro",
@@ -60,6 +63,7 @@ local m_tHostURLs =
 	"photo.net",
 	"en.yahoo.com",
 }
+
 
 return m_tHostURLs
 
