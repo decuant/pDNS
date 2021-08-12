@@ -44,7 +44,7 @@ It runs a backtask on the main window timer and tests a batch of servers per tic
 
 The pre-configured ``data/servers.lua`` is the servers' address list in Lua table format.
 
-File ``data/samplehosts.lua`` holds a Lua table of __Hosts for Sampling__, assigned circularly to each new server, thus to make all servers target the same host provide only that name in the list. If the list is big scramble the servers' list, save and reload; this shuffles the host assigned to a server.
+File ``data/samplehosts.lua`` holds a Lua table of __Hosts for Sampling__, assigned circularly to each new server, thus to make all servers target the same host provide only that name in the list. Hostnames can be reassigned randomly via menu.
 
 For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``. Response and analisys of the response are recorded in the log ``log/protocol.log``.
 
