@@ -93,7 +93,6 @@ function ticktimer.toString(self)
 	if self.m_Enabled then sEnable = "Enabled" end
 	
 	return _frmt("[%s] [%s] remaining [%.04f]", self.m_Name, sEnable, self:remainingTime())
---	return _frmt("[%s] [%s] elapsed [%.04f]", self.m_Name, sEnable, self:elapsedTime())
 end
 
 -- ----------------------------------------------------------------------------

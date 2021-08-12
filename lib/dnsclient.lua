@@ -163,9 +163,9 @@ end
 -- modify the address
 --
 function Address.ChangeAddress(self, inAddress)
-	
+
 	inAddress = str_ltrim(inAddress)
-	
+
 	if self.sAddress ~= inAddress then
 		
 		self.sAddress = inAddress
@@ -173,8 +173,34 @@ function Address.ChangeAddress(self, inAddress)
 		self:Validate()
 		self:ResetCompleted()
 	end
-	
+
 	return self.bValid
+end
+
+-- ----------------------------------------------------------------------------
+-- get the corresponding number of the IP4 address
+--
+function Address.IP4Number(self)
+	
+	if 0 == #self.sAddress then return 0 end
+	
+	local iIP4	 = 0
+	local iParts = 0
+
+	for sToken in _gmatch(self.sAddress, "[^.]*") do
+		
+		local iNumber = tonumber(sToken) or -1
+		
+		if 0 > iNumber or 256 <= iNumber then return 0 end
+		
+		iIP4 = (iIP4 << 8) + iNumber
+		
+		iParts = iParts + 1
+	end
+
+	if 4 < iParts then return 0 end
+
+	return iIP4
 end
 
 -------------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 -- ----------------------------------------------------------------------------
 
 local wx 		= require("wx")					-- uses wxWidgets for Lua
+local Timers	= require("lib.ticktimer")		-- timers
 local trace		= require("lib.trace")			-- shortcut for tracing
 local palette	= require("lib.wxX11Palette")	-- declarations for colors
 
@@ -127,6 +128,7 @@ local TaskOptions =
 {
 	iTaskInterval	= 65,							-- timer interval
 	iBatchLimit		= 9,							-- max servers per taks
+	iSchedInterval	= 5,							-- scheduler timeout in secs
 }
 
 -- ----------------------------------------------------------------------------
@@ -140,13 +142,13 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeDark,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeContrast,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
-
-	hTickTimer		= nil,							-- timer associated with window
-	bReentryLock	= false,						-- avoid re-entrant calling
-	
 	tStatus			= {0, 0, 0, 0},					-- total, enabled, completed, failed
+
+	hTickTimer		= nil,							-- (Win) timer associated with window
+	bReentryLock	= false,						-- avoid re-entrant calling
+	tScheduler 		= Timers.new("Scheduler"),		-- ticktimer for scheduler
 
 	iSearchStart	= 1,							-- current start for search
 }
@@ -320,7 +322,13 @@ local function EnableBacktask(inEnable)
 	if inEnable then
 		
 		if not hTick then
-		
+			
+			-- assign a timeout for the scheduler
+			--
+			m_Mainframe.tScheduler:setup(TaskOptions.iSchedInterval, true)
+			
+			-- start a repeating Windows' timer
+			--
 			hTick = wx.wxTimer(m_Mainframe.hWindow, wx.wxID_ANY)
 			hTick:Start(TaskOptions.iTaskInterval, false)
 			
@@ -329,6 +337,8 @@ local function EnableBacktask(inEnable)
 	else
 		
 		if hTick then
+			
+			m_Mainframe.tScheduler:enable(false)
 			
 			hTick:Stop()
 			hTick = nil
@@ -587,6 +597,8 @@ local function SetEnable(inRow, inEnabled)
 --	m_logger:line("SetEnable")	
 
 	local tServers	= m_thisApp.tServers
+	if not next(tServers) then return end
+	
 	local tRowsList	= { }
 	
 	if -1 == inRow then
@@ -662,6 +674,7 @@ end
 -- fuzzy enable servers
 --
 local function OnFuzzyEnable()
+	m_logger:line("OnFuzzyEnable")
 
 	m_thisApp.FuzzyEnable()
 	
@@ -721,6 +734,14 @@ local function OnResetCompleted()
 end
 
 -- ----------------------------------------------------------------------------
+--
+local function OnRandomHosts()
+--	m_logger:line("OnRandomHosts")
+	
+	m_thisApp.SetRandomHosts()
+end
+
+-- ----------------------------------------------------------------------------
 -- reset the DNS client to the start
 --
 local function OnPurgeServers(inWhich)
@@ -747,18 +768,78 @@ local function OnPurgeInvalid(inWhich)
 end
 
 -- ----------------------------------------------------------------------------
+-- reset the DNS client to the start
+--
+local function OnPurgeFailing()
+--	m_logger:line("OnPurgeFailing")
+
+	if m_thisApp.BasicFilter() then
+		
+		ShowServers()
+		UpdateDisplay()
+	end
+end
+
+-- ----------------------------------------------------------------------------
 -- tick timer backtask
+--
+local function OnScheduler()
+--	m_logger:line("OnScheduler")
+
+	local tScheduler = m_Mainframe.tScheduler
+
+	if not tScheduler:hasFired() then return false end
+
+													-- corresponding to menus:
+	OnPurgeServers(Purge.verified)					-- purge responding
+	OnPurgeFailing()								-- filter failing
+	OnRandomHosts()									-- assign random hosts
+	OnResetCompleted()								-- reset completed
+
+	local iTotal	= m_Mainframe.tStatus[1]
+	local iEnabled 	= m_Mainframe.tStatus[2]
+
+	if 0 == iTotal then OnImportServers() end
+
+	if 75 > iEnabled then
+		
+		OnPurgeInvalid()
+		
+		iTotal	 = m_Mainframe.tStatus[1]
+		iEnabled = m_Mainframe.tStatus[2]
+		
+		if iTotal ~= iEnabled then
+			
+			if 25 > (iTotal - iEnabled) then
+				
+				OnEnableAll(1)
+			else
+				
+				OnFuzzyEnable()
+			end
+		end
+	end
+
+	tScheduler:reset()
+
+	return true
+end
+
+-- ----------------------------------------------------------------------------
+-- windows timer backtask
 -- uses a simple boolean to avoid re-entry calls
 --
-local function OnTickTimer()
+local function OnWindowsTimer()
 
 	-- check if it is still running
 	--
 	if m_Mainframe.bReentryLock then return end
 	m_Mainframe.bReentryLock = true
 
---	m_logger:line("OnTickTimer")
+--	m_logger:line("OnWindowsTimer")
 
+	-- run the batch and get the count of touched items
+	--
 	local iBatch, iLast = m_thisApp.RunBatch(TaskOptions.iBatchLimit)
 	
 	if 0 < iBatch and 0 < iLast then 
@@ -773,6 +854,13 @@ local function OnTickTimer()
 		end
 		
 		hGrid:ForceRefresh()			-- seldom there's no colour changing
+		
+		m_Mainframe.tScheduler:reset()	-- restart the timer
+	else
+		
+		-- idling
+		--
+		OnScheduler()
 	end
 
 	UpdateProgress()
@@ -1099,9 +1187,11 @@ local function CreateMainWindow()
 	local rcMnuPurge_OK		= NewMenuID()
 	local rcMnuPurge_KO		= NewMenuID()
 	local rcMnuPurge_DEL	= NewMenuID()
-	
+	local rcMnuPurge_FAIL	= NewMenuID()
+
 	local rcMnuToggleBkTsk	= NewMenuID()
-	local rcMnuResetCmpltd	= NewMenuID()	
+	local rcMnuResetCmpltd	= NewMenuID()
+	local rcMnuRandomHosts	= NewMenuID()
 
 	-- ------------------------------------------------------------------------	
 	-- create a window
@@ -1150,14 +1240,17 @@ local function CreateMainWindow()
 	mnuFilt:Append(rcMnuPurge_KO,	"Purge responding\tCtrl-Y",	"Remove responding servers")
 	mnuFilt:AppendSeparator()
 	mnuFilt:Append(rcMnuPurge_DEL,	"Delete selected\tCtrl-Z",	"Build a new list without selected")
+	mnuFilt:AppendSeparator()
+	mnuFilt:Append(rcMnuPurge_FAIL,	"Filter failing\tCtrl-Z",	"Remove addresses in failing list")
 
 	local mnuCmds = wx.wxMenu("", wx.wxMENU_TEAROFF)
 
 	mnuCmds:Append(rcMnuToggleBkTsk,"Toggle backtask\tCtrl-B",	"Start/Stop the backtask")
 	mnuCmds:Append(rcMnuResetCmpltd,"Reset completed\tCtrl-R",	"Reset the completed flag")
+	mnuCmds:Append(rcMnuRandomHosts,"Assign random hosts\tCtrl-H",	"Assign a new question to each server")
 
 	local mnuFunc = wx.wxMenu("", wx.wxMENU_TEAROFF)
-	
+
 	mnuFunc:Append(rcMnuLoadFxs, "Reload functions\tCtrl-L",	"Load functions.lua, create menu entries")
 
 	local mnuHelp = wx.wxMenu("", wx.wxMENU_TEAROFF)
@@ -1195,7 +1288,7 @@ local function CreateMainWindow()
 	--
 	frame:Connect(wx.wxEVT_CLOSE_WINDOW, CloseMainWindow)
 	frame:Connect(wx.wxEVT_SIZE,		 OnSize)
-	frame:Connect(wx.wxEVT_TIMER,		 OnTickTimer)
+	frame:Connect(wx.wxEVT_TIMER,		 OnWindowsTimer)
 
 	-- menu event handlers
 	--
@@ -1214,11 +1307,13 @@ local function CreateMainWindow()
 	frame:Connect(rcMnuPurge_OK,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() OnPurgeServers(Purge.failed) end)
 	frame:Connect(rcMnuPurge_KO,	wx.wxEVT_COMMAND_MENU_SELECTED, function() OnPurgeServers(Purge.verified) end)
 	frame:Connect(rcMnuPurge_DEL,	wx.wxEVT_COMMAND_MENU_SELECTED, OnDeleteSelected)
+	frame:Connect(rcMnuPurge_FAIL,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnPurgeFailing)
 	
 	frame:Connect(rcMnuLoadFxs, 	wx.wxEVT_COMMAND_MENU_SELECTED,	OnLoadFunctions)
 
 	frame:Connect(rcMnuToggleBkTsk,	wx.wxEVT_COMMAND_MENU_SELECTED,	function() EnableBacktask(not BacktaskRunning()) end)
 	frame:Connect(rcMnuResetCmpltd,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnResetCompleted)
+	frame:Connect(rcMnuRandomHosts,	wx.wxEVT_COMMAND_MENU_SELECTED,	OnRandomHosts)
 
 	frame:Connect(wx.wxID_EXIT,		wx.wxEVT_COMMAND_MENU_SELECTED, CloseMainWindow)
 	frame:Connect(wx.wxID_ABOUT,	wx.wxEVT_COMMAND_MENU_SELECTED, OnAbout)
@@ -1278,6 +1373,7 @@ end
 -- associate functions
 --
 local function SetupPublic()
+
 	m_Mainframe.CreateMainWindow	= CreateMainWindow
 	m_Mainframe.ShowMainWindow		= ShowMainWindow
 	m_Mainframe.CloseMainWindow		= CloseMainWindow
