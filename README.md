@@ -1,7 +1,7 @@
 #  **pDNS**
 
 
-## Polling DNS - rel. 0.0.5 (2021/08/01)
+## Polling DNS - rel. 0.0.6 (2021/08/12)
 
 
 A list of DNS servers is presented to the user. Each server can be enabled or disabled. Running the backtask, enabled servers will be questioned about a URL. Response is in the log file.
@@ -40,7 +40,7 @@ Starting the backtask to poll each enabled server.
 
 ![Main dialog active](/docs/Main_Dialog2.png)
 
-It runs a backtask on the main window timer and tests a batch of servers per tick. Beside recommendations DNS servers work with UDP and as it is not supported by wxLua, the program uses ``luasocket`` (on Windows the required filename is ``socket.dll``). Other concurrent implementations are not advisable. This program is not intended for speed benchmarking, but to question servers.
+It runs a backtask on the main window timer and tests a batch of servers per tick. UDP is not supported by wxLua, the program uses ``luasocket`` (on Windows the required filename is ``socket.dll``). Other concurrent implementations are not advisable. This program is not intended for speed benchmarking, but to question servers.
 
 The pre-configured ``data/servers.lua`` is the servers' address list in Lua table format.
 
@@ -50,9 +50,9 @@ For the time being DNS servers are questioned only with a ``TYPE 1 <hostname>``.
 
 When purging servers note that a server with 2 addresses having different responding status is a logical failure.
 
-At file load time a filter is applied, it will blank addresses that are found too often in the failing servers' list. Theresold is fixed in code. Failures are consecutive, a success will reset the server's address status. Polling servers often will automatically let have a purified list of servers that are almost always responding.
+The application does not enforce to save the servers' file if modified.
 
-The application does not enforce to save the file if modified.
+Whit the backtask enabled, if the application is idling then a scheduler timer is started. When the timer fires then the scheduling routine is called. In this implementation is hard coded.
 
 File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
 
@@ -155,14 +155,16 @@ This is a typical response.
 05256: Alias                       = sid.ns.cloudflare.com
 ```
 
-Some replies might have more information.
+The third address looks a bluff. The fourth useless.
 
 ```
-02371: Questions count             = 1
-02372: Answers count               = 4
-02373: Authoritative servers count = 4
-02374: Additional records count    = 4
-02375: URL requested               = time.com
+	["hostwinds.com"] =
+	{
+		["104.18.16.143"]   = 590,
+		["104.18.17.143"]   = 590,
+		["162.241.226.169"] = 1,
+		["127.0.0.1"]       = 1,
+	},
 ```
 
 The server replied at the specified ip address, but the reply is a DNS error code.
@@ -258,6 +260,14 @@ local _hittable =
 
 
 ### Rel. 0.0.5
+
+
+- Modified sorting to use the IP4 address as number, not text.
+- Added scheduler to repeat a task when in idle and after timer.
+- Added menu entry to assign random hosts to servers.
+
+### Rel. 0.0.5
+
 
 - Flush all open log streams at close.
 - Protocol parsing at authoritatives.

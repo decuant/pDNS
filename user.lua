@@ -89,7 +89,7 @@ local function Menu_Modify_FilterFailing()
 	
 	local  thisApp = _G.m_ThisApp
 
-	thisApp.FilterFailing(25)
+	thisApp.BasicFilter()
 	OnRefreshWindow()
 
 	return true

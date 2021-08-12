@@ -23,11 +23,6 @@ local _abs		= math.abs
 local m_logger	= trace.new("debug")
 local m_random  = random.new()
 
--------------------------------------------------------------------------------
--- crate the statistic table and set the enable flag
---
-
-
 -- ----------------------------------------------------------------------------
 -- options for the Purge filter
 --
@@ -43,15 +38,16 @@ _ENV.Purge = Purge							-- make it globally accessible
 --
 local m_App =
 {
-	sAppVersion	= "0.0.5",				-- application's version
+	sAppVersion	= "0.0.6",				-- application's version
 	sAppName	= "Polling DNS",		-- name for the application
-	sRelDate 	= "2021/08/01",
+	sRelDate 	= "2021/08/12",
 
 	tServers	= { },					-- list of DNS servers
 	iColSort	= 0,					-- column used for sorting
 	
 	tHitTest	= nil,					-- hit test counters
-	tFailAddr	= nil,
+	tFailAddr	= nil,					-- hit fail counters
+	iTheresold	= 20,					-- cut high filter
 	
 	iCurHost	= 0,					-- index for the next host
 	tSamples	= { },					-- list of sample hosts
@@ -70,18 +66,65 @@ local m_Config =
 --_ENV.FileList = m_Config						-- make it globally accessible
 
 -- ----------------------------------------------------------------------------
--- get a name from the list in samplehosts.lua
+-- get the next hostname from the list in samplehosts.lua
 --
-local function GetNextHost()
-	
+local function GetCyclicHost()
+
 	local iCurHost	= m_App.iCurHost
 	local tSamples	= m_App.tSamples
-	
+
+	if not next(tSamples) then return "" end
+
 	iCurHost = iCurHost + 1
 	if iCurHost > #tSamples then iCurHost = 1 end
 	
 	m_App.iCurHost = iCurHost
 	return tSamples[iCurHost]
+end
+
+-- ----------------------------------------------------------------------------
+-- get a casual hostname from the list in samplehosts.lua
+--
+local function GetRandomHost()
+	
+	local tSamples	= m_App.tSamples
+	if not next(tSamples) then return "" end
+	
+	-- take a random index
+	--
+	local iCurHost = _floor(m_random:getBoxed(1, #tSamples + 1))
+
+	return tSamples[iCurHost]
+end
+
+-- ----------------------------------------------------------------------------
+-- import hosts' list from file
+--
+local function LoadSampleHosts()
+--	m_logger:line("LoadSampleHosts")
+	
+	local sConfigFile = m_Config.sHostsFile
+	
+	m_logger:line("Loading hosts from file [" .. sConfigFile .. "]")
+
+	-- reset old values
+	--
+	m_App.iCurHost	= 0
+	m_App.tSamples	= { }
+	
+	-- process file
+	--
+	if not wx.wxFileName().Exists(sConfigFile) then return 0 end
+
+	local _tList = dofile(sConfigFile)
+	
+	if _tList then 
+		
+		m_App.tSamples = _tList
+		collectgarbage()	
+	end
+
+	return #m_App.tSamples
 end
 
 -- ----------------------------------------------------------------------------
@@ -176,13 +219,15 @@ local function OnSort(inColumn)
 	_compare2 = function(a, b)
 		
 		if not a.tAddresses[1] or not b.tAddresses[1] then return true end
-		return a.tAddresses[1].sAddress < b.tAddresses[1].sAddress
+		
+		return a.tAddresses[1]:IP4Number() < b.tAddresses[1]:IP4Number()
 	end
 
 	_compare3 = function(a, b)
 		
 		if not a.tAddresses[2] or not b.tAddresses[2] then return true end
-		return a.tAddresses[2].sAddress < b.tAddresses[2].sAddress
+		
+		return a.tAddresses[2]:IP4Number() < b.tAddresses[2]:IP4Number()
 	end
 
 	_compare4 = function(a, b)	
@@ -379,6 +424,27 @@ local function OnFilterByRef(inString)
 end
 
 -- ----------------------------------------------------------------------------
+-- apply filter for failing addresses with defaults
+--
+local function OnBasicFilter()
+--	m_logger:line("OnBasicFilter")
+
+	-- automatic blanketing of most erroneous addresses
+	--
+	local iTheresold = m_App.iTheresold
+
+	local iFilterOut = OnFilterFailing(iTheresold)
+
+	if 0 < iFilterOut then
+		
+		m_logger:line("Cut high filter: " .. iTheresold)
+		m_logger:line("Suppressed addresses: " .. iFilterOut)
+	end
+	
+	return 0 < iFilterOut
+end
+
+-- ----------------------------------------------------------------------------
 -- remove servers from the main table depending on the criteria
 -- 0: remove failing hosts
 -- 1: remove responding hosts
@@ -544,6 +610,26 @@ local function DeleteServers(inRowsList)
 end
 
 -- ----------------------------------------------------------------------------
+-- import hosts' list from file
+--
+local function OnSetRandomHosts()
+	
+	local tServers	= m_App.tServers
+	if not next(tServers) then return false end
+	
+	-- reload file
+	--
+	if 0 == LoadSampleHosts() then return false end
+	
+	for _, server in next, tServers do
+		
+		server:SetQuestion(1, GetRandomHost())
+	end
+
+	return true
+end
+
+-- ----------------------------------------------------------------------------
 -- run a task for each server in list, up to limit in parameter
 --
 local function OnRunBatch(inLimit)
@@ -578,40 +664,17 @@ local function OnRunBatch(inLimit)
 end
 
 -- ----------------------------------------------------------------------------
--- import hosts' list from file
---
-local function LoadSampleHosts()
---	m_logger:line("LoadSampleHosts")	
-	
-	local sConfigFile = m_Config.sHostsFile
-	
-	m_logger:line("Loading hosts from file [" .. sConfigFile .. "]")
-
-	-- reset old values
-	--
-	m_App.iCurHost	= 0
-	m_App.tSamples	= { }
-	
-	-- process file
-	--
-	if not wx.wxFileName().Exists(sConfigFile) then return 0 end
-
-	local _tList = dofile(sConfigFile)
-	
-	if _tList then 
-		
-		m_App.tSamples = _tList
-		collectgarbage()	
-	end
-
-	return #m_App.tSamples
-end
-
--- ----------------------------------------------------------------------------
 -- import servers' list from file
 --
 local function ImportServersFromFile()
---	m_logger:line("ImportServersFromFile")	
+--	m_logger:line("ImportServersFromFile")
+
+	-- load hosts from sample file
+	--
+	if 0 == LoadSampleHosts() then
+		
+		m_logger:line("Hostnames not specified!")
+	end
 	
 	local sConfigFile = m_Config.sConfigFile
 	
@@ -649,7 +712,7 @@ local function ImportServersFromFile()
 			
 			-- assign a host for question
 			--
-			tServers[i]:SetQuestion(1, GetNextHost())
+			tServers[i]:SetQuestion(1, GetCyclicHost())
 		end
 		
 		m_App.tServers = tServers
@@ -659,15 +722,7 @@ local function ImportServersFromFile()
 	--
 	m_App.iColSort = 0
 	
-	-- automatic blanketing of most erroneous addresses
-	--
-	local iTheresold = 15
-
-	m_logger:line("Cut high filter: " .. iTheresold)
-
-	local iFilterOut = OnFilterFailing(iTheresold)
-
-	m_logger:line("Suppressed addresses: " .. iFilterOut)
+--	OnBasicFilter()
 
 	return #m_App.tServers
 end
@@ -717,10 +772,6 @@ local function SetUpApplication()
 	
 	assert(os.setlocale('ita', 'all'))
 	m_logger:line("Current locale is [" .. os.setlocale() .. "]")
-	
-	-- load hosts from sample file
-	--
-	LoadSampleHosts()
 	
 	m_random:initialize()
 	
@@ -784,10 +835,12 @@ local function SetupPublic()
 
 	m_App.ImportDNSFile = ImportServersFromFile
 	m_App.SaveDNSFile	= SaveServersFile
+	m_App.SetRandomHosts= OnSetRandomHosts
 	m_App.EnableServers	= EnableServers
 	m_App.PurgeInvalid	= OnPurgeInvalid
 	m_App.PurgeServers	= PurgeServers
 	m_App.DeleteServers	= DeleteServers
+	m_App.BasicFilter	= OnBasicFilter
 	m_App.RunBatch		= OnRunBatch
 	m_App.Scramble		= OnScramble
 	m_App.Sort			= OnSort
