@@ -259,7 +259,7 @@ local _hittable =
 ## List of changes
 
 
-### Rel. 0.0.5
+### Rel. 0.0.6
 
 
 - Modified sorting to use the IP4 address as number, not text.
