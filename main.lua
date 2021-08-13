@@ -21,7 +21,11 @@ local _abs		= math.abs
 -- ----------------------------------------------------------------------------
 --
 local m_logger	= trace.new("debug")
+
+-- the random number generator
+--
 local m_random  = random.new()
+m_random:initialize()
 
 -- ----------------------------------------------------------------------------
 -- options for the Purge filter
@@ -47,7 +51,7 @@ local m_App =
 	
 	tHitTest	= nil,					-- hit test counters
 	tFailAddr	= nil,					-- hit fail counters
-	iTheresold	= 20,					-- cut high filter
+	iTheresold	= 5,					-- cut high filter
 	
 	iCurHost	= 0,					-- index for the next host
 	tSamples	= { },					-- list of sample hosts
@@ -616,11 +620,7 @@ local function OnSetRandomHosts()
 	
 	local tServers	= m_App.tServers
 	if not next(tServers) then return false end
-	
-	-- reload file
-	--
-	if 0 == LoadSampleHosts() then return false end
-	
+
 	for _, server in next, tServers do
 		
 		server:SetQuestion(1, GetRandomHost())
@@ -668,13 +668,6 @@ end
 --
 local function ImportServersFromFile()
 --	m_logger:line("ImportServersFromFile")
-
-	-- load hosts from sample file
-	--
-	if 0 == LoadSampleHosts() then
-		
-		m_logger:line("Hostnames not specified!")
-	end
 	
 	local sConfigFile = m_Config.sConfigFile
 	
@@ -767,14 +760,19 @@ end
 --
 local function SetUpApplication()
 --	m_logger:line("SetUpApplication")
-	
+
 	m_logger:time(m_App.sAppName .. " [Rel. " .. m_App.sAppVersion .. "]")	
-	
+
 	assert(os.setlocale('ita', 'all'))
 	m_logger:line("Current locale is [" .. os.setlocale() .. "]")
-	
-	m_random:initialize()
-	
+
+	-- load hosts from sample file
+	--
+	if 0 == LoadSampleHosts() then
+		
+		m_logger:line("Hostnames not specified!")
+	end
+
 	-- load the hit test table
 	-- (enable/disable in parameter)
 	--
@@ -785,13 +783,13 @@ local function SetUpApplication()
 	--
 	m_App.tFailAddr = hits.new(true, "data\\Hit-Fail.lua")
 	m_App.tFailAddr:restore()
-	
+
 	-- register globally
 	--
 	_G.m_ThisApp	= m_App
 	_G.m_HitTest	= m_App.tHitTest
 	_G.m_FailAddr	= m_App.tFailAddr
-	
+
 	return true
 end
 
@@ -801,7 +799,7 @@ end
 --
 local function ShowGUI()
 --	m_logger:line("ShowGUI")
-	
+
 	mainWin.CreateMainWindow()
 	mainWin.ShowMainWindow()
 end
