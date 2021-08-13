@@ -142,7 +142,7 @@ local m_Mainframe =
 	hStatusBar		= nil,							-- statusbar handle
 
 	hGridDNSList	= nil,							-- grid
-	tColors			= m_tDefColours.tSchemeContrast,	-- colours for the grid
+	tColors			= m_tDefColours.tSchemeIvory,	-- colours for the grid
 	tWinProps		= m_tDefWinProp,				-- window layout settings
 	tStatus			= {0, 0, 0, 0},					-- total, enabled, completed, failed
 
@@ -634,14 +634,14 @@ local function OnToggleSelected()
 	local grid 		= m_Mainframe.hGridDNSList
 	local tSelected = grid:GetSelectedRows():ToLuaTable()
 	local iValue
-	
+
 	for i=1, #tSelected do
 		
 		iValue = grid:GetCellValue(tSelected[i], 0)
 		
 		SetEnable(tSelected[i], _abs(iValue - 1))
 	end
-	
+
 	UpdateDisplay()
 end
 
@@ -652,9 +652,7 @@ local function OnToggleAll()
 --	m_logger:line("OnToggleAll")
 
 	m_thisApp.ToggleAll()
-	
-	-- refresh view
-	--
+
 	ShowServers()
 	UpdateDisplay()
 end
@@ -663,9 +661,9 @@ end
 --
 local function OnEnableAll(inValue)
 --	m_logger:line("OnEnableAll")
-	
+
 	SetEnable(-1, inValue)
-	
+
 	ShowServers()
 	UpdateDisplay()	
 end
@@ -674,12 +672,10 @@ end
 -- fuzzy enable servers
 --
 local function OnFuzzyEnable()
-	m_logger:line("OnFuzzyEnable")
+--	m_logger:line("OnFuzzyEnable")
 
 	m_thisApp.FuzzyEnable()
-	
-	-- refresh view
-	--
+
 	ShowServers()
 	UpdateDisplay()
 end
@@ -790,18 +786,28 @@ local function OnScheduler()
 
 	if not tScheduler:hasFired() then return false end
 
-													-- corresponding to menus:
-	OnPurgeServers(Purge.verified)					-- purge responding
-	OnPurgeFailing()								-- filter failing
-	OnRandomHosts()									-- assign random hosts
-	OnResetCompleted()								-- reset completed
+	cleanup = function()
+													-- correspond to menus:
+		OnPurgeServers(Purge.verified)				-- purge responding
+		OnPurgeFailing()							-- filter failing
+		OnRandomHosts()								-- assign random hosts
+		OnResetCompleted()							-- reset completed
+	end
 
+	-- perform a cleanup
+	--
+	cleanup()
+	
 	local iTotal	= m_Mainframe.tStatus[1]
 	local iEnabled 	= m_Mainframe.tStatus[2]
 
-	if 0 == iTotal then OnImportServers() end
+	if 0 == iTotal then 
+		
+		OnImportServers()
+		cleanup()
+	end
 
-	if 75 > iEnabled then
+	if 35 > iEnabled then
 		
 		OnPurgeInvalid()
 		
@@ -810,7 +816,7 @@ local function OnScheduler()
 		
 		if iTotal ~= iEnabled then
 			
-			if 25 > (iTotal - iEnabled) then
+			if 15 > (iTotal - iEnabled) then
 				
 				OnEnableAll(1)
 			else
