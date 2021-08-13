@@ -52,7 +52,7 @@ When purging servers note that a server with 2 addresses having different respon
 
 The application does not enforce to save the servers' file if modified.
 
-Whit the backtask enabled, if the application is idling then a scheduler timer is started. When the timer fires then the scheduling routine is called. In this implementation is hard coded.
+With the backtask enabled, if the application is idling then a scheduler timer is started. When the timer fires then the scheduling routine is called. In this implementation is hard coded.
 
 File ``user.lua`` is a container for plugin functions, it can be modified and reloaded at run time.
 
