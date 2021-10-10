@@ -872,7 +872,8 @@ local function OnWindowsTimer()
 	UpdateProgress()
 
 	m_Mainframe.bReentryLock = false
-end
+end
+
 -- ----------------------------------------------------------------------------
 -- a cell was modified
 --
@@ -1215,7 +1216,7 @@ local function CreateMainWindow()
 	local frame = wx.wxFrame(wx.NULL, wx.wxID_ANY, sTitle,
 							 wx.wxPoint(pos[1], pos[2]), wx.wxSize(size[1], size[2]))
 
-	frame:SetMinSize(wx.wxSize(300, 200)) 						
+	frame:SetMinSize(wx.wxSize(300, 200))
 
 	-- ------------------------------------------------------------------------
 	-- create the menus
@@ -1359,7 +1360,7 @@ local function CreateMainWindow()
 	
 	-- assign the last text used in text box
 	--
-	editFind:WriteText(tWinProps.filter)
+	editFind:WriteText(tWinProps.filter or "")
 
 	-- assign an icon
 	--
